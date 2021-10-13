@@ -1,0 +1,8 @@
+To try: Try to "install" glib under /usr/include. Although what if it has dependencies?
+https://developer.ibm.com/tutorials/l-glib/
+
+To try:
+write a "dictionary" that is just a linked list where each "node" is a struct that contains:
+- "key": char * 
+- "data": void * // Store anything as a pointer
+- "next": node *

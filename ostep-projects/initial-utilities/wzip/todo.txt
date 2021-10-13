@@ -1,0 +1,4 @@
+- Getting some sort of debugging working
+- Pass test 6
+- Split out array library
+- split up source file and use make to compile program (see p 6/13 in tutorial)
