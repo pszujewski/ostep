@@ -113,7 +113,7 @@ void process_file(char *path, Array *pa)
             }
             else if (isalpha(line[i]))
             {
-                printf("alpha found: %c\n", line[i]);
+                //printf("alpha found: %c\n", line[i]);
                 insertArray(pa, count);
                 insertArray(pa, (int)found);
                 count = 1;
