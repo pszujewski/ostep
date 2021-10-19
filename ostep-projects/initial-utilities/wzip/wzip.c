@@ -103,8 +103,25 @@ void process_file(char *path, Array *pa)
 
             if (is_valid && found == 0)
             {
-                found = line[i];
-                count++;
+                if (isspace(line[i]) && pa->used > 0)
+                {
+                    char last_found = (char)pa->array[pa->used - 1];
+
+                    if (isspace(last_found) && last_found == line[i])
+                    {
+                        pa->array[pa->used - 2]++;
+                    }
+                    else
+                    {
+                        found = line[i];
+                        count++;
+                    }
+                }
+                else
+                {
+                    found = line[i];
+                    count++;
+                }
             }
             else if (is_valid && found == line[i])
             {
@@ -120,8 +137,11 @@ void process_file(char *path, Array *pa)
         }
         //printf("%d\n", count);
         //printf("%c\n", (int)found);
-        insertArray(pa, count);
-        insertArray(pa, (int)found);
+        if (found != 0)
+        {
+            insertArray(pa, count);
+            insertArray(pa, (int)found);
+        }
     }
 
     free(line);
