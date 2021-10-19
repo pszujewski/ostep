@@ -96,30 +96,21 @@ void process_file(char *path, Array *pa)
     {
         char found = 0;
         int count = 0;
-        //printf("line is of length: %ld", len);
 
         for (int i = 0; i < nread; i++)
         {
-            if (isalpha(line[i]) && found == 0)
+            bool is_valid = isalpha(line[i]) || isspace(line[i]);
+
+            if (is_valid && found == 0)
             {
-                //printf("Init alpha found: %c\n", line[i]);
                 found = line[i];
                 count++;
             }
-            else if (isalpha(line[i]) && found == line[i])
+            else if (is_valid && found == line[i])
             {
-                //printf("INCREMENTING\n");
                 count++;
             }
-            else if (isalpha(line[i]))
-            {
-                //printf("alpha found: %c\n", line[i]);
-                insertArray(pa, count);
-                insertArray(pa, (int)found);
-                count = 1;
-                found = line[i];
-            }
-            else if (isspace(line[i]))
+            else if (is_valid)
             {
                 insertArray(pa, count);
                 insertArray(pa, (int)found);
