@@ -25,11 +25,14 @@ for details.
 ## Run and debug
 
 ```sh
-prompt> gcc ./wzip.c ./ht.c -o ./wzip -Wall -Werror -g3
+prompt> gcc ./wzip.c ../../lib/ht.c -o ./wzip -Wall -Werror -g
 ```
-Use the `-g` flag to add debug information.
+Use the `-g` flag to add debug information. Add '-g3' for more detail.
 
 For more information:
 https://www.youtube.com/watch?v=r1zCtg_wqCA&t=623s
 
+## Valgrind
+
+https://stackoverflow.com/questions/5134891/how-do-i-use-valgrind-to-find-memory-leaks
 

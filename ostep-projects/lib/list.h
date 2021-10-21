@@ -16,7 +16,7 @@ list_node *node_init();
 
 size_t list_insert(list_node *lst, void *datap);
 
-list_node *get_node(list_node *lst, size_t index);
+list_node *list_get(list_node *lst, size_t index);
 
 list_node *get_last_node(list_node *lst);
 

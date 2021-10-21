@@ -1,5 +1,9 @@
+COMPLETE
 - Getting some sort of debugging working (done)
-- Pass test 6
-- Split out array library
-- Move array library and ht.c/h to a directory called /lib in /ostep-projects 
-- split up source file and use make to compile program (see p 6/13 in tutorial)
+- Pass test 6 (done)
+- Split out array library into list.c (done)
+- Evaluate list solution with valgrind for memory leaks (done)
+- Move list library and ht.c/h to a directory called /lib in /ostep-projects (done)
+
+REMAINING
+- split up source file and use "make" to compile wzip program (see p 6/13 in tutorial)

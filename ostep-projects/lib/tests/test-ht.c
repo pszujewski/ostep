@@ -1,4 +1,4 @@
-#include "./ht.h"
+#include "../ht.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdbool.h>
-#include "./ht.h"
+#include "../../lib/ht.h"
 
 // Run ./wzip ./tests/4.in
 // Rather than immediately writing the int/char combo to the stdout, add them to a list that you write at once to stdout.
