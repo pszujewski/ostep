@@ -22,6 +22,13 @@ list_node *node_init()
     return listp;
 }
 
+size_t list_get_size(list_node *lst)
+{
+    list_node *last_node = get_last_node(lst);
+    size_t last_idx = last_node->index;
+    return last_idx + 1;
+}
+
 size_t list_insert(list_node *lst, void *datap)
 {
     list_node *last_node = get_last_node(lst);

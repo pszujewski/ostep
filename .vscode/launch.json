@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch wzip",
+            "name": "(gdb) Launch wish",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/ostep-projects/initial-utilities/wzip/wzip",
-            "args": ["./tests/6.in"],
+            "program": "${workspaceFolder}/ostep-projects/processes-shell/wish",
+            "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
@@ -24,7 +24,7 @@
             ]
         },
         {
-            "name": "(gdb) Launch generic",
+            "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ostep-projects/initial-utilities/wzip/test-list",

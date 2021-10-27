@@ -1,0 +1,5 @@
+while loop 
+getline()
+strsep()
+`fork()`, `exec()`, and `wait()/waitpid()`
+execv
