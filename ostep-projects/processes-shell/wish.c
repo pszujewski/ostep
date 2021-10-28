@@ -12,7 +12,8 @@
 
 int main(int argc, char *argv[])
 {
-    // char *path[] = {"/bin", NULL};
+    char *path[100];
+    initPath(path);
 
     while (argc == 1)
     {
@@ -28,11 +29,10 @@ int main(int argc, char *argv[])
 
         if (strcmp(input, "exit") == 0)
         {
-            printf("Exiting...\n");
-            exit(1);
+            exit(0);
         }
 
-        parseAndRunCommands(input, 0);
+        parseAndRunCommands(input, 0, path);
 
         // char *argument_list[] = {"ls", NULL};
         // exec("ls", argument_list);
@@ -53,7 +53,7 @@ void interactive(char *input)
     }
 }
 
-void parseAndRunCommands(char *input, size_t start)
+void parseAndRunCommands(char *input, size_t start, char *path[])
 {
     int length = strlen(input);
     list_node *inputTokens = list_init();
@@ -65,10 +65,10 @@ void parseAndRunCommands(char *input, size_t start)
     {
         if (input[i] == '&')
         {
-            runCommand(inputTokens);
+            runCommand(inputTokens, path);
             list_free(inputTokens);
             size_t nextCmdStartIdx = i + 2;
-            return parseAndRunCommands(input, nextCmdStartIdx);
+            return parseAndRunCommands(input, nextCmdStartIdx, path);
         }
         else if (isspace(input[i]) == 0)
         {
@@ -90,19 +90,49 @@ void parseAndRunCommands(char *input, size_t start)
         }
     }
     list_insert(inputTokens, token);
-    runCommand(inputTokens);
+    runCommand(inputTokens, path);
     list_free(inputTokens);
 }
 
-void runCommand(list_node *inputTokens)
+void initPath(char *path[])
+{
+    path[0] = "/bin";
+    path[1] = NULL;
+}
+
+void runCommand(list_node *inputTokens, char *path[])
 {
     char *args[25];
     size_t size = list_get_size(inputTokens);
 
     char *cmd = getCommand(inputTokens);
     setArgumentsList(args, inputTokens, size);
-    // isExecutable?
-    exec(cmd, args);
+
+    if (strcmp(cmd, "cd") == 0)
+    {
+        int result = chdir(args[1]);
+        if (result == -1)
+        {
+            error();
+            exit(1);
+        }
+    }
+    else if (strcmp(cmd, "path") == 0)
+    {
+        setNewPath(path, args);
+    }
+    else
+    {
+        if (isExecutable(cmd, path))
+        {
+            exec(cmd, args);
+        }
+        else
+        {
+            error();
+            exit(1);
+        }
+    }
 }
 
 char *getCommand(list_node *inputTokens)
@@ -132,12 +162,21 @@ void setArgumentsList(char *args[], list_node *inputTokens, size_t size)
 
 bool isExecutable(char *command, char *path[])
 {
-    char *cmd = strcat("/", command);
+    char cmdfile[20];
+
+    strcpy(cmdfile, "/");
+    strcat(cmdfile, command);
 
     int index = 0;
     while (path[index] != NULL)
     {
-        int exists = access(strcat(path[index], cmd), X_OK);
+        char fullpath[20];
+
+        strcpy(fullpath, path[index]);
+        strcat(fullpath, cmdfile);
+
+        int exists = access(fullpath, X_OK);
+
         if (exists == 0)
         {
             return true;
@@ -167,6 +206,24 @@ void exec(char *command, char *args[])
         // parent path
         wait(NULL);
     }
+}
+
+void setNewPath(char *path[], char *args[])
+{
+    if (args[1] == NULL)
+    {
+        error();
+        exit(1);
+    }
+
+    int index = 1;
+
+    while (args[index] != NULL)
+    {
+        path[index - 1] = args[index];
+        index++;
+    }
+    path[index - 1] = NULL;
 }
 
 void error()
