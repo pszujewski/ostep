@@ -6,9 +6,17 @@
 
 void error();
 
+void batch(int argc, char *argv[], char *path[]);
+
+void freePath(char *path[]);
+
 void interactive(char *input);
 
 void initPath(char *path[]);
+
+void evalForExit(char *input, char *path[]);
+
+void strclean(char *input);
 
 char *getCommand(list_node *inputTokens);
 

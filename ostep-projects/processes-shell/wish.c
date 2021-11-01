@@ -15,38 +15,86 @@ int main(int argc, char *argv[])
     char *path[100];
     initPath(path);
 
+    if (argc > 1)
+    {
+        batch(argc, argv, path);
+        freePath(path);
+        exit(0);
+    }
+
     while (argc == 1)
     {
         char *input = malloc(MAX_INPUT_SZ);
 
         if (input == NULL)
         {
+            freePath(path);
             error();
-            exit(1);
         }
+
+        // int index = 0;
+
+        // while (path[index] != NULL)
+        // {
+        //     printf("%s\n", path[index]);
+        //     index++;
+        // }
+
+        // index = 0;
 
         interactive(input);
-
-        if (strcmp(input, "exit") == 0)
-        {
-            exit(0);
-        }
+        evalForExit(input, path);
 
         parseAndRunCommands(input, 0, path);
-
-        // char *argument_list[] = {"ls", NULL};
-        // exec("ls", argument_list);
-
         free(input);
     }
+
+    freePath(path);
     exit(1);
+}
+
+void evalForExit(char *input, char *path[])
+{
+    if (strcmp(input, "exit") == 0)
+    {
+        freePath(path);
+        exit(0);
+    }
+}
+
+void batch(int argc, char *argv[], char *path[])
+{
+    for (int i = 1; i < argc; i++)
+    {
+        FILE *fp = fopen(argv[i], "r");
+
+        if (fp == NULL)
+        {
+            error();
+        }
+
+        char ipt[50];
+
+        while (fgets(ipt, 50, fp))
+        {
+            strclean(ipt);
+            evalForExit(ipt, path);
+            parseAndRunCommands(ipt, 0, path);
+        }
+
+        fclose(fp);
+    }
 }
 
 void interactive(char *input)
 {
     printf("wish> ");
     fgets(input, MAX_INPUT_SZ, stdin);
+    strclean(input);
+}
 
+void strclean(char *input)
+{
     if ((strlen(input) > 0) && (input[strlen(input) - 1] == '\n'))
     {
         input[strlen(input) - 1] = '\0';
@@ -89,15 +137,32 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
             }
         }
     }
-    list_insert(inputTokens, token);
+    if (strlen(token) > 0)
+    {
+        list_insert(inputTokens, token);
+    }
+
     runCommand(inputTokens, path);
     list_free(inputTokens);
 }
 
 void initPath(char *path[])
 {
-    path[0] = "/bin";
+    char *dest = (char *)malloc(25);
+    strcpy(dest, "/bin");
+    path[0] = dest;
     path[1] = NULL;
+}
+
+void freePath(char *path[])
+{
+    int index = 0;
+
+    while (path[index] != NULL)
+    {
+        free(path[index]);
+        index++;
+    }
 }
 
 void runCommand(list_node *inputTokens, char *path[])
@@ -114,7 +179,6 @@ void runCommand(list_node *inputTokens, char *path[])
         if (result == -1)
         {
             error();
-            exit(1);
         }
     }
     else if (strcmp(cmd, "path") == 0)
@@ -130,7 +194,6 @@ void runCommand(list_node *inputTokens, char *path[])
         else
         {
             error();
-            exit(1);
         }
     }
 }
@@ -186,6 +249,7 @@ bool isExecutable(char *command, char *path[])
     return false;
 }
 
+// TODO: Must accept "path" variable here
 void exec(char *command, char *args[])
 {
     int rc = fork();
@@ -198,6 +262,7 @@ void exec(char *command, char *args[])
     else if (rc == 0)
     {
         // child path
+        // TODO: use execv() and build absolute path using "path"
         execvp(command, args);
         printf("\n");
     }
@@ -213,14 +278,15 @@ void setNewPath(char *path[], char *args[])
     if (args[1] == NULL)
     {
         error();
-        exit(1);
     }
 
     int index = 1;
 
     while (args[index] != NULL)
     {
-        path[index - 1] = args[index];
+        char *dest = (char *)malloc(25);
+        strcpy(dest, args[index]);
+        path[index - 1] = dest;
         index++;
     }
     path[index - 1] = NULL;
