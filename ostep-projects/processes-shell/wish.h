@@ -22,13 +22,15 @@ char *getCommand(list_node *inputTokens);
 
 void parseAndRunCommands(char *input, size_t start, char *path[]);
 
+int getFullExecutablePathIndex(char *command, char *path[]);
+
 void runCommand(list_node *inputTokens, char *path[]);
 
 void setArgumentsList(char *args[], list_node *inputTokens, size_t size);
 
 void setNewPath(char *path[], char *args[]);
 
-void exec(char *command, char *args[]);
+void exec(char *command, char *args[], char *path[]);
 
 bool isExecutable(char *command, char *path[]);
 

@@ -189,7 +189,7 @@ void runCommand(list_node *inputTokens, char *path[])
     {
         if (isExecutable(cmd, path))
         {
-            exec(cmd, args);
+            exec(cmd, args, path);
         }
         else
         {
@@ -225,6 +225,12 @@ void setArgumentsList(char *args[], list_node *inputTokens, size_t size)
 
 bool isExecutable(char *command, char *path[])
 {
+    int result = getFullExecutablePathIndex(command, path);
+    return result > -1;
+}
+
+int getFullExecutablePathIndex(char *command, char *path[])
+{
     char cmdfile[20];
 
     strcpy(cmdfile, "/");
@@ -242,15 +248,15 @@ bool isExecutable(char *command, char *path[])
 
         if (exists == 0)
         {
-            return true;
+            return index;
         }
         index++;
     }
-    return false;
+    return -1;
 }
 
 // TODO: Must accept "path" variable here
-void exec(char *command, char *args[])
+void exec(char *command, char *args[], char *path[])
 {
     int rc = fork();
 
@@ -262,8 +268,18 @@ void exec(char *command, char *args[])
     else if (rc == 0)
     {
         // child path
-        // TODO: use execv() and build absolute path using "path"
-        execvp(command, args);
+        int idx = getFullExecutablePathIndex(command, path);
+
+        char cmdfile[20];
+        char fullpath[20];
+
+        strcpy(cmdfile, "/");
+        strcat(cmdfile, command);
+
+        strcpy(fullpath, path[idx]);
+        strcat(fullpath, cmdfile);
+
+        execv(fullpath, args);
         printf("\n");
     }
     else
@@ -275,11 +291,6 @@ void exec(char *command, char *args[])
 
 void setNewPath(char *path[], char *args[])
 {
-    if (args[1] == NULL)
-    {
-        error();
-    }
-
     int index = 1;
 
     while (args[index] != NULL)
