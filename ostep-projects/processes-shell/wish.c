@@ -255,7 +255,6 @@ int getFullExecutablePathIndex(char *command, char *path[])
     return -1;
 }
 
-// TODO: Must accept "path" variable here
 void exec(char *command, char *args[], char *path[])
 {
     int rc = fork();
