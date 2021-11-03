@@ -24,13 +24,17 @@ void parseAndRunCommands(char *input, size_t start, char *path[]);
 
 int getFullExecutablePathIndex(char *command, char *path[]);
 
-void runCommand(list_node *inputTokens, char *path[]);
+void runCommand(list_node *inputTokens, char *path[], char *redirectTo);
+
+int getEndOfNextTokenIndex(char *input, size_t start);
+
+void extractToken(char *dest, char *input, int start, int end);
 
 void setArgumentsList(char *args[], list_node *inputTokens, size_t size);
 
 void setNewPath(char *path[], char *args[]);
 
-void exec(char *command, char *args[], char *path[]);
+void exec(char *command, char *args[], char *path[], char *redirectTo);
 
 bool isExecutable(char *command, char *path[]);
 

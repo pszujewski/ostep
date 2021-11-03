@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include "./wish.h"
 #include "../lib/list.h"
 
@@ -113,10 +114,41 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
     {
         if (input[i] == '&')
         {
-            runCommand(inputTokens, path);
+            runCommand(inputTokens, path, NULL);
             list_free(inputTokens);
             size_t nextCmdStartIdx = i + 2;
             return parseAndRunCommands(input, nextCmdStartIdx, path);
+        }
+        if (input[i] == '>')
+        {
+            int nextIdx = i + 1;
+            char next = input[nextIdx];
+
+            if ((next == '\0') | (next == '\n'))
+            {
+                error();
+                return;
+            }
+            if (isspace(next))
+            {
+                nextIdx = i + 2;
+            }
+
+            int fileTokenEndIdx = getEndOfNextTokenIndex(input, nextIdx);
+            char redirectTo[50];
+
+            extractToken(redirectTo, input, nextIdx, fileTokenEndIdx);
+            size_t nextStartIdx = fileTokenEndIdx + 1;
+
+            if (strlen(token) > 0)
+            {
+                list_insert(inputTokens, token);
+            }
+
+            runCommand(inputTokens, path, redirectTo);
+            list_free(inputTokens);
+
+            return parseAndRunCommands(input, nextStartIdx, path);
         }
         else if (isspace(input[i]) == 0)
         {
@@ -142,7 +174,17 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
         list_insert(inputTokens, token);
     }
 
-    runCommand(inputTokens, path);
+    list_node *item = list_get(inputTokens, 0);
+
+    if ((item->data) != NULL)
+    {
+        runCommand(inputTokens, path, NULL);
+    }
+    else
+    {
+        free(token);
+    }
+
     list_free(inputTokens);
 }
 
@@ -165,7 +207,36 @@ void freePath(char *path[])
     }
 }
 
-void runCommand(list_node *inputTokens, char *path[])
+int getEndOfNextTokenIndex(char *input, size_t start)
+{
+    size_t i;
+    int length = strlen(input);
+
+    for (i = start; i < length; i++)
+    {
+        if (isspace(input[i]) != 0)
+        {
+            // is a space
+            return i - 1;
+        }
+    }
+    return length - 1;
+}
+
+void extractToken(char *dest, char *input, int start, int end)
+{
+    int destIdx = 0;
+
+    for (size_t i = start; i <= end; i++)
+    {
+        dest[destIdx] = input[i];
+        destIdx++;
+    }
+
+    dest[destIdx] = '\0';
+}
+
+void runCommand(list_node *inputTokens, char *path[], char *redirectTo)
 {
     char *args[25];
     size_t size = list_get_size(inputTokens);
@@ -189,7 +260,7 @@ void runCommand(list_node *inputTokens, char *path[])
     {
         if (isExecutable(cmd, path))
         {
-            exec(cmd, args, path);
+            exec(cmd, args, path, redirectTo);
         }
         else
         {
@@ -255,7 +326,7 @@ int getFullExecutablePathIndex(char *command, char *path[])
     return -1;
 }
 
-void exec(char *command, char *args[], char *path[])
+void exec(char *command, char *args[], char *path[], char *redirectTo)
 {
     int rc = fork();
 
@@ -277,6 +348,14 @@ void exec(char *command, char *args[], char *path[])
 
         strcpy(fullpath, path[idx]);
         strcat(fullpath, cmdfile);
+
+        if (redirectTo != NULL)
+        {
+            int fd = open(redirectTo, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+            dup2(fd, 1); // make stdout go to file
+            dup2(fd, 2); // make stderr go to file
+            close(fd);   // fd no longer needed - the dup'ed handles are sufficient
+        }
 
         execv(fullpath, args);
         printf("\n");
