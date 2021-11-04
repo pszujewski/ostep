@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ostep-projects/processes-shell/wish",
-            "args": [],
+            "args": ["tests/13.in"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

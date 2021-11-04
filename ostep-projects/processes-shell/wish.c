@@ -72,18 +72,27 @@ void batch(int argc, char *argv[], char *path[])
         if (fp == NULL)
         {
             error();
+            exit(1);
         }
 
         char ipt[50];
+        bool didRunCmds = false;
 
         while (fgets(ipt, 50, fp))
         {
+            didRunCmds = true;
             strclean(ipt);
             evalForExit(ipt, path);
             parseAndRunCommands(ipt, 0, path);
         }
 
         fclose(fp);
+
+        if (!didRunCmds)
+        {
+            error();
+            exit(1);
+        }
     }
 }
 
@@ -114,9 +123,29 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
     {
         if (input[i] == '&')
         {
+            list_node *item = list_get(inputTokens, 0);
+
+            if ((item->data) == NULL)
+            {
+                list_free(inputTokens);
+                return;
+            }
+
+            if (strlen(token) > 0)
+            {
+                list_insert(inputTokens, token);
+            }
+
             runCommand(inputTokens, path, NULL);
             list_free(inputTokens);
-            size_t nextCmdStartIdx = i + 2;
+
+            size_t nextCmdStartIdx = i + 1;
+
+            if (isspace(input[nextCmdStartIdx]))
+            {
+                nextCmdStartIdx += 1;
+            }
+
             return parseAndRunCommands(input, nextCmdStartIdx, path);
         }
         if (input[i] == '>')
@@ -127,11 +156,21 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
             if ((next == '\0') | (next == '\n'))
             {
                 error();
+                list_free(inputTokens);
                 return;
             }
             if (isspace(next))
             {
                 nextIdx = i + 2;
+            }
+
+            list_node *item = list_get(inputTokens, 0);
+
+            if ((item->data) == NULL)
+            {
+                error();
+                list_free(inputTokens);
+                return;
             }
 
             int fileTokenEndIdx = getEndOfNextTokenIndex(input, nextIdx);
@@ -140,9 +179,21 @@ void parseAndRunCommands(char *input, size_t start, char *path[])
             extractToken(redirectTo, input, nextIdx, fileTokenEndIdx);
             size_t nextStartIdx = fileTokenEndIdx + 1;
 
+            if (isspace(input[nextStartIdx]))
+            {
+                nextStartIdx += 1;
+            }
+
             if (strlen(token) > 0)
             {
                 list_insert(inputTokens, token);
+            }
+
+            if (input[nextStartIdx] == '>')
+            {
+                error();
+                list_free(inputTokens);
+                return;
             }
 
             runCommand(inputTokens, path, redirectTo);
