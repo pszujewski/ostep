@@ -8,6 +8,10 @@ The OS is a body of software that allows you to run multiple programs, allows pr
 
 The OS must run non-stop; when it fails, all applications running on the system fail as well. The OS is itself a software program. The OS controls the hardware in your system. 
 
+General note
+
+See Summation symbol: https://mathinsight.org/definition/summation_symbol
+
 ## Virtualization
 
 The OS takes a Processor, Memory, or a Disk for example and transforms it into a more general "virtual" easy-to-use form of itself. The OS is therefore a "virtual machine." The OS also virtualizes the CPU, which means that, for running programs, there seem to be an endless number of CPUs, whereas in reality, the OS manages how CPU resources are allocated between running processes. 
@@ -157,5 +161,145 @@ The concept of niceness ranges from -20 to +19 for a process. A positive nice va
 
 See Summation symbol: https://mathinsight.org/definition/summation_symbol
 
-p. 14/14 Homework (simulation)
+# The Abstraction: Address Spaces
 
+As time-sharing between processes became an issue (allowing multiple programs to reside concurrently in memory and switching between them by simply saving their registers' and PC state....), protectionbecame an important issue. You don't want one process to overwrite the memory of another. 
+
+The OS solves this by abstracting away memory into the "Address Space", which is the running program's "view" of memory.
+
+The program while it is running uses a stack to keep track of where it is in the function call chain as well as to allocate local variables and pass parameters and return values to and from routines. The heap is used for dynamically allocated user-managed memory. So there is the code, stack and heap for a given process.
+
+The virtual memory system is responsible for providing the illusion of a large, sparse, private address space to programs, which hold all their instructions and data therein.
+
+If you print out a pointer memory address in a C program, you are seeing the virtual memory address. Try this out to view an example
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    printf("location of code : %p\n", main);
+    printf("location of heap : %p\n", malloc(100e6));
+    int x = 3;
+    printf("location of stack: %p\n", &x);
+    return x;
+}
+
+/*
+Results might look like this:
+
+location of code : 0x1095afe50
+location of heap : 0x1096008c0
+location of stack: 0x7fff691aea64
+*/
+
+```
+
+## Homework
+
+Using free, this system has ~12GB (12,573MB) of total memory, of which ~4GB is "Swap" memory. There is 11880MB of "free"/unused memory.
+
+When you run memory-user.c and allocate 1 MB of stack based memory to an array of ints, the "used" memory increases about 1 - 3 MB. When I stop the process (which runs in an infinite loop), the "used" memory decreases by about 1 - 3 MB. Memory usage varies over the process' runtime for some reason.
+
+I get a segmentation fault when trying to allocate an array that is any larger than 2MB.
+
+By default, pmap prints one line for each mapping within the address space of the target process:
+
+6949:   ./a.out 1 30
+Address           Kbytes     RSS   Dirty Mode  Mapping
+000055c931e00000       4       4       0 r-x-- a.out              // file-backed mapping
+000055c931e00000       0       0       0 r-x-- a.out
+000055c932000000       4       4       4 r---- a.out
+000055c932000000       0       0       0 r---- a.out
+000055c932001000       4       4       4 rw--- a.out
+000055c932001000       0       0       0 rw--- a.out
+000055c932183000     132       4       4 rw---   [ anon ]         // anonymous mapping (not file-backed)
+000055c932183000       0       0       0 rw---   [ anon ]
+00007fee8dee9000    1948    1280       0 r-x-- libc-2.27.so       // file-backed mapping
+00007fee8dee9000       0       0       0 r-x-- libc-2.27.so
+00007fee8e0d0000    2048       0       0 ----- libc-2.27.so
+00007fee8e0d0000       0       0       0 ----- libc-2.27.so
+00007fee8e2d0000      16      16      16 r---- libc-2.27.so
+00007fee8e2d0000       0       0       0 r---- libc-2.27.so
+00007fee8e2d4000       8       8       8 rw--- libc-2.27.so
+00007fee8e2d4000       0       0       0 rw--- libc-2.27.so
+00007fee8e2d6000      16      12      12 rw---   [ anon ]
+00007fee8e2d6000       0       0       0 rw---   [ anon ]
+00007fee8e2da000     164     152       0 r-x-- ld-2.27.so
+00007fee8e2da000       0       0       0 r-x-- ld-2.27.so
+00007fee8e4f8000       8       8       8 rw---   [ anon ]
+00007fee8e4f8000       0       0       0 rw---   [ anon ]
+00007fee8e503000       4       4       4 r---- ld-2.27.so
+00007fee8e503000       0       0       0 r---- ld-2.27.so
+00007fee8e504000       4       4       4 rw--- ld-2.27.so
+00007fee8e504000       0       0       0 rw--- ld-2.27.so
+00007fee8e505000       4       4       4 rw---   [ anon ]
+00007fee8e505000       0       0       0 rw---   [ anon ]
+00007ffec2e05000    3920    3920    3920 rw---   [ stack ]             // mapped to the "stack"
+00007ffec2e05000       0       0       0 rw---   [ stack ]
+00007ffec31f4000      16       0       0 r----   [ anon ]
+00007ffec31f4000       0       0       0 r----   [ anon ]
+00007ffec31f8000       4       4       0 r-x--   [ anon ]
+00007ffec31f8000       0       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB            8304    5428    3988
+
+`pmap` displays each separate mapping of the process. A mapping is a range of contiguous pages having the same backend (anonymous or file) and the same access modes. `pmap` provides the size of the mappings instead of the ranges of addresses. Sum the size to the address to get the range of the addresses in the virtual address space.
+
+Using pmap, I see a section labeled [RSS](https://en.wikipedia.org/wiki/Resident_set_size), which stands for Rsident set size, and is the portion of memory occupied by a process that is held in main memory (RAM). The rest of the occupied memory resides in the swap space of file system. Use of resident set size by a process is the total meory consumption of a proces. Some mappings are only partially mapped in physical memory. 
+
+Each map is associated with a set of modes:
+
+r: if set, the map is readable
+w: if set, the map is writable
+x: if set, the map contains executable code
+s: if set, the map is shared (right column in our previous classification). You can notice that pmap only has the s flag, while the kernel exposes two different flags for shared (s) and private (p) memory.
+R: if set, the map has no swap space reserved (MAP_NORESERVE flag of mmap), this means that we can get a segmentation fault by accessing that memory if it has not already been mapped to physical memory and the system is out of physical memory.
+
+It shows three categories of memory: anon, stack and file-backed. pmap does not "keep the heap mark." `anon` refers to the fact that the mapping does not have a "disk-based backend." Also, "Memory not relating to any named object or file within the file system is reported as `anon`. The pmap command displays common names for certain known anonymous memory mappings like 'stack'." If the common name for the mapping is unknown, pmap displays `anon` as the mapping name. (https://docs.oracle.com/cd/E19683-01/817-3936/6mjgdbveg/index.html)
+
+Mappings with no modes help ensure buffers so that pointers don't accidentally travers into a region of memory that they aren't supposed to. 
+
+For more detail see: https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/
+
+Also notable, is that two processes that are backed by the same file can share certain memory "page" mappings. In other words, the operating system is smart enough to know that it doesn't need to reload all the executable code and static data into virtual memory when it is already there to run an already existing process. The exact size of a memory page can vary between systems. 
+
+# Memory
+
+Two types of memory in a C/Unix program: Stack and Heap. Stack memory is managed implicitly by the compiler for the programmer. So it is also known as automatic memory. All allocations and deallocations of heap memory are explicitly managed by the programmer however. Heap memory is long-term memory. Here's an example:
+
+```c
+void func() 
+{
+    int *x = (int *) malloc(sizeof(int));
+}
+```
+Not allocating enough memory is called a buffer overflow:
+
+```c
+char *src = "hello";
+char *dst = (char *) malloc(strlen(src)); // too small!
+strcpy(dst, src); 
+```
+
+A memory leak occurs when you allocate memory from the heap and then forget to `free()` it. In long running applications (such as the OS itself), this is a huge problem, as slowly leaking memory will lead you to eventually run out of memory. Memory leaks can occur even when working with a modern language that includes a garbage collector (if a reference to unused memory hangs around the GC won't clean it up).
+
+There are really two levels of memory management in a system. The first level is performed by the OS, which hands out memory to processes when they run and then takes it back when they are finished. The second level is within each process, for example allocating and deallocating memory. Thus, even if you fail to call `free`, the OS will reclaim the memory pages allocated for your process once it's done. Thus for short-lived programs, leaking memory does not cause problems usually but it is considered poor form.
+
+`malloc()` and `free()` are C standard library calls that manage space within your virtual address space, they are built on top of system calls like `brk()` which is used to change the location of the end of the heap (aka the Program's "break").
+
+You can also obtain memory by using the `mmap()` call, which creates an "anonymous" memory region with your program - a region which is not associated with a particular file but rather with swap space. This memory can also be treated like a heap and managed as such. `man mmap` for more info.
+
+# Linux objdump utility
+
+Use the `objdump` utility to get info on an executable object file. For example: `objdump -i ./a.out`. See `objdump --help` for more options. There are many. 
+
+Remember "x86-64 machine code is the native language of the processors in most desktop and laptop computers. x86-64 assembly language is a human-readable version of this machine code." [Source](http://cs.brown.edu/courses/csci1260/spring-2021/lectures/x86-64-assembly-language-reference.html)
+
+You can disassemble to x86-64 assembly code using this command: `objdump -d ./a.out -M x86-64`. Add `-S` to add source code to the assembly code as well. Where "./a.out" is an executable file. 
+
+# Address Translation
+
+Hardware often provides a means to translate a virtual memory address into a real "physical" memory address. The OS works to maintain the illusion that each running process has it's own enclosed memory address space. In reality, programs often share memory blocks as the OS context switches between processes. 
+
+P. 5 / 15 BOTTOM section 15.3 https://pages.cs.wisc.edu/~remzi/OSTEP/vm-mechanism.pdf

@@ -1,3 +1,0 @@
-Finish a full section in the book (ie virtualiztion) and then do the projects
-
-Multi-CPU scheduling is an advanced chapter that you are supposed to come back to.
