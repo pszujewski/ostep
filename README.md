@@ -258,11 +258,13 @@ R: if set, the map has no swap space reserved (MAP_NORESERVE flag of mmap), this
 
 It shows three categories of memory: anon, stack and file-backed. pmap does not "keep the heap mark." `anon` refers to the fact that the mapping does not have a "disk-based backend." Also, "Memory not relating to any named object or file within the file system is reported as `anon`. The pmap command displays common names for certain known anonymous memory mappings like 'stack'." If the common name for the mapping is unknown, pmap displays `anon` as the mapping name. (https://docs.oracle.com/cd/E19683-01/817-3936/6mjgdbveg/index.html)
 
+Each memory mapping "maps" to one of the 3 logical segments of a process' address space: **code** (static code that defines the program), the **stack** (for runtime data processing; i.e setting of local variables or function arguments), and finally the **heap** (long-running dynamically allocated memory).
+
 Mappings with no modes help ensure buffers so that pointers don't accidentally travers into a region of memory that they aren't supposed to. 
 
 For more detail see: https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/
 
-Also notable, is that two processes that are backed by the same file can share certain memory "page" mappings. In other words, the operating system is smart enough to know that it doesn't need to reload all the executable code and static data into virtual memory when it is already there to run an already existing process. The exact size of a memory page can vary between systems. 
+Also notable, is that two processes that are backed by the same file can share certain memory "page" mappings. In other words, the operating system is smart enough to know that it doesn't need to reload all the executable code and static data into virtual memory when it is already there to run an already existing process. This works because these memory mappings have modes that are only "r" or "x" and never "w". If a user program can never "write" to a certain mapping, then there is no reason that this mapping cannot be shared between processes to save memory. The exact size of a memory page can vary between systems. 
 
 # Memory
 
@@ -300,6 +302,192 @@ You can disassemble to x86-64 assembly code using this command: `objdump -d ./a.
 
 # Address Translation
 
+With address translation, the OS cancontrol each andevery memory accessfrom a process, ensuring the accesses stay within the bounds o the address space for the process.
+
 Hardware often provides a means to translate a virtual memory address into a real "physical" memory address. The OS works to maintain the illusion that each running process has it's own enclosed memory address space. In reality, programs often share memory blocks as the OS context switches between processes. 
 
-P. 5 / 15 BOTTOM section 15.3 https://pages.cs.wisc.edu/~remzi/OSTEP/vm-mechanism.pdf
+The CPU does this via the *base* register. For example, if the OS decides to load a given process starting at physical address 32KB, it will therefore set the base register to 32KB. As the process runs, any memory address is converted at runtime by the hardware with this formula: `physical address = virtual address + base register value`. A base register is used to transform virtual addresses into physical addresses. 
+
+Because the relocation of the address happens at runtime, the technique is referred to as dynamic relocation. There is also a bounds register that ensures the generated physical address is valid for the process (i.e user processes should not be able to access memory addresses within the bounds of the actuall OS memory space). These registers are a part of the CPU's memory management unit (MMU). 
+
+The OS as startup issues a "privileged instruction" (an instruction that can only be run in the CPUs kernel mode) to set the base and bounds registers. Th ebase and bounds registers are set for each running process. So when a context switch occurs, the state of these registers is saved along with the state of all other CPU registers.
+
+The OS must provide *exception handlers*, or functions that run when the CPU throws an exception. The OS installs these handlers at boot time via privileged instructions. For example if the process tries to access memory at runtime that is outside of its bounds, the CPU will "throw" a specific exception that will trigger an OS exception handler (residing in the OS' static 'code' wher it 'lives' in memory). In this case, the OS will likely terminate the offending process and return an error code. If no errors occur, the process runs "directly" on the CPU in user mode. Address translation extends the concept of limited direct execution, because the process does not need to know the state of the base and bounds registers.  
+
+# Segmentation
+
+What if we had a base and bounds per logical **segment** of the address space? A segment is a contiguous portion of the address space of a particular length. There are 3 logically different segments: code, stack,and heap. Segmentation allows us to place each segment in a different part of physical memory. The hardware supports segmentation with 3 pairs of base and bounds registers for each logical segment.
+
+The segmentation fault occurs from a memory access on a segmented machine to an illegal address. 
+
+When allocating memory, the general problem that arises is that physical memory quickly becomes full of little holes of free space, making it difficult to allocate new segments, or to grow existing. This problem is known as external fragmentation. No matter how smart the algorithm, external fragmentation will always exist, and thus a good algorithm simply seeks to minimize it.
+
+But Segmentation helps build a more effective virtualiztion of memory that simply allocating single blocks of memory for the stack, code and heap with a set amount of "free" space that these 3 segments could grow into. Segmentation supports sparse address spaces, which avoids the potential (likely) waste of memory between logical segments of the address space. 
+
+## Homework 
+
+Link: https://pages.cs.wisc.edu/~remzi/OSTEP/vm-segmentation.pdf
+
+Example taken from running:
+`./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -c`
+
+### Question 1 - 2
+
+#### FOR THE STACK (SEGMENT 1):
+
+Negative direction (grows negatively):
+
+```
+nbase1 = base1 + len1
+paddr = nbase1 + (vaddr - asize) // physical address is "nbase1" + difference of virtual address and address space size.
+```
+
+Example:
+
+```
+len1 = 59
+base1 = 453
+nbase1 = base1 + len1 = 512
+vaddr = 0x00000061 (decimal: 97) -> 1 100001  // msb indicates "stack segent" and the rest is offset, which = 33 here.
+asize = 128                                   // address space size
+paddr = nbase1 + (vaddr - asize)
+```
+
+Example:
+481 = 512 + (97 - 128)
+
+To check if it's a INVALID address for the segment:
+
+`if paddr < base1   // INVALID if true`
+
+For Heap:
+
+`vaddr >= len0 // INVALID if true`
+
+
+b) `./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -s 1`
+
+ARG seed 1
+ARG address space size 128
+ARG phys mem size 512
+
+Segment register information:
+
+Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+Segment 0 limit                  : 20
+Segment 0 Highest legal virtual address: 19  
+
+Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+Segment 1 limit                  : 36
+Segment 1 Lowest legal virtual address: 92 (512 + (92 - 128) = 476) 
+
+What are the lowest and highest illegal addresses in this entire address space?
+
+lowest illegal: vaddr = 20, paddr = 20
+highest illegal: vaddr = 91, paddr = 475
+
+SEG1 base1 = 476 (512 - 36)
+
+VA  0: 0x0000006c (decimal:  108) (binary: 1101100) --> (SEG1: 512 + (108 - 128) = 492: VALID PHYSICAL ADDRESS)
+VA  1: 0x00000061 (decimal:   97) (binary: 1100001) --> (SEG1: 512 + (97 - 128) = 481: VALID PHYSICAL ADDRESS)
+VA  2: 0x00000020 (decimal:   32) (binary: 0100000) --> (SEG0: SEG VIOLATION)
+VA  3: 0x0000003f (decimal:   63) (binary: 0111111) --> (SEG0: SEG VIOLATION)
+VA  4: 0x00000039 (decimal:   57) (binary: 0111001) --> (SEG0: SEG VIOLATION)
+
+Finally, how would you run segmentation.py with the -A flag to test if you are right?
+
+This should yield two virtual address traces for vaddresses 19 and 92.
+
+`./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -s 1 -A 19,92 -c` The results are:
+
+```
+Virtual Address Trace
+  VA  0: 0x00000013 (decimal:   19) --> VALID in SEG0: 0x00000013 (decimal:   19)
+  VA  1: 0x0000005c (decimal:   92) --> VALID in SEG1: 0x000001dc (decimal:  476)
+```
+
+Then if you run it instead for virtual addresses 20 and 91, you get:
+
+```
+Virtual Address Trace
+  VA  0: 0x00000014 (decimal:   20) --> SEGMENTATION VIOLATION (SEG0)
+  VA  1: 0x0000005b (decimal:   91) --> SEGMENTATION VIOLATION (SEG1)
+```
+
+c) ./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 2
+
+ARG seed 2
+ARG address space size 128
+ARG phys mem size 512
+
+SEG1 base1 = 492 (512 - 20)
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+  Segment 0 limit                  : 20
+  Segment 0 Highest legal virtual address: 19  
+
+  Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+  Segment 1 limit                  : 20
+  Segment 1 Lowest legal virtual address: 108 (512 + (108 - 128) = 492) 
+
+  What are the lowest and highest illegal addresses in this entire address space?
+
+  Lowest illegal: 20
+  Highest illegal: 107
+
+Virtual Address Trace
+  VA  0: 0x0000007a (decimal:  122) --> VALID in SEG1: 0x000001fa (decimal:  506)
+  VA  1: 0x00000079 (decimal:  121) --> VALID in SEG1: 0x000001f9 (decimal:  505)
+  VA  2: 0x00000007 (decimal:    7) --> VALID in SEG0: 0x00000007 (decimal:    7)
+  VA  3: 0x0000000a (decimal:   10) --> VALID in SEG0: 0x0000000a (decimal:   10)
+  VA  4: 0x0000006a (decimal:  106) --> SEGMENTATION VIOLATION (SEG1)
+
+### Question 3
+
+Run this `./segmentation.py -a 16 -p 128 -A 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15`
+
+SEG0 last valid paddr = 0x00000036  (vaddr = 0x00000001 (decimal:    1))
+SEG1 first valid paddr = 0x00000026 (vaddr = 0x0000000e (decimal:   14))
+
+
+To check if it's a INVALID address for the segment:
+
+`if paddr < base1   // INVALID if true`
+
+For Heap:
+
+`vaddr >= len0 // INVALID if true`
+
+-b (Base0 register) = 53
+-l (Len0 register) = 2
+
+-B (Base1 register) = 13
+-L (Len1 register) = 2
+
+### Question 4 and 5
+
+4) Assume we want to generate a problem where roughly 90% of the
+randomly-generated virtual addresses are valid (not segmentation
+violations). How should you configure the simulator to do so?
+Which parameters are important to getting this outcome?
+
+A: The only thing I can come up with is to make the segments have a length that is close to 98% of the total address space size. For example, by setting the limit registers as follows:
+
+`./segmentation.py -a 500 -p 1g -n 10 -A -1 -c --l0=245 --l1=245`
+
+Here 490 is 98% of 500.
+
+5) Can you run the simulator such that no virtual addresses are valid?
+How?
+
+A: Make it so that the limit registers for Segment 1 and 2 are both set to 0. Thus, the segments have no length and can't contain any addresses. For example, run:
+
+`./segmentation.py -a 128 -p 512 -n 10 -A -1 -c --l0=0 --l1=0`
+
+# Free-Space Management
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/vm-freespace.pdf
+
+
