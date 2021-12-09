@@ -488,6 +488,11 @@ A: Make it so that the limit registers for Segment 1 and 2 are both set to 0. Th
 
 # Free-Space Management
 
-https://pages.cs.wisc.edu/~remzi/OSTEP/vm-freespace.pdf
+It's easy when the space you are managing is divided into fixed-size units, but difficult when those units are of a variable size. This arises, for example, with the OS, which manages physical memory by implementing segmentation to virtualize memory resources.
 
+External fragmentation: the free space gets chopped up into little pieces of different sizes and is thus fragmented; subsequent requests for memory may fail because there is no single contiguous space that can satisfy the request, even if the total amount of free space exceeds the size of the request.
 
+`void *malloc(size t size)` takes `size`, which is the number of bytes requested by the application.
+`malloc` manages the `heap`, and the generic data structure used to manage free space in the heap is some kind of "free list".
+
+P 3/18 https://pages.cs.wisc.edu/~remzi/OSTEP/vm-freespace.pdf 17.2 Low Level Mechanisms
