@@ -71,11 +71,22 @@ Here we look at the results by using the -c option.
 ```sh
 prompt> ./malloc.py -S 100 -b 1000 -H 4 -a 4 -l ADDRSORT -p BEST -n 5 -c
 
-ptr[0] = Alloc(3)  returned 1004 (searched 1 elements)
+// 4 bytes allocated for header (addresses 1000 - 1003)
+// 3 bytes requested is rounded to 4 (pointer at 1004 allocation up to address 1007)
+// The free list root pointer is now at 1008.
+
+ptr[0] = Alloc(3)  returned 1004 (searched 1 elements) 
 Free List [ Size 1 ]:  [ addr:1008 sz:92 ]
 
 Free(ptr[0]) returned 0
 Free List [ Size 2 ]:  [ addr:1000 sz:8 ] [ addr:1008 sz:92 ]
+
+// 4 bytes allocated for the header
+// 5 bytes requested, so allocator must allocate 8 for a total of 12
+// So [ addr:1000 sz:8 ] is not big enough. [ addr:1020 sz:80 ] is big enough but will be split
+// So addresses 1008 - 1011 are allocated for the header. 8 more bytes are available for user data
+// starting at address 1012 (up to address 1019)
+// So the free space left for this chunk starts at address 1020 and is 80 bytes large.
 
 ptr[1] = Alloc(5)  returned 1012 (searched 2 elements)
 Free List [ Size 2 ]:  [ addr:1000 sz:8 ] [ addr:1020 sz:80 ]

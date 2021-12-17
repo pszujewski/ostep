@@ -488,6 +488,8 @@ A: Make it so that the limit registers for Segment 1 and 2 are both set to 0. Th
 
 # Free-Space Management
 
+Conceptually, the free-list is the list of unused virtual memory in the heap. 
+
 It's easy when the space you are managing is divided into fixed-size units, but difficult when those units are of a variable size. This arises, for example, with the OS, which manages physical memory by implementing segmentation to virtualize memory resources.
 
 External fragmentation: the free space gets chopped up into little pieces of different sizes and is thus fragmented; subsequent requests for memory may fail because there is no single contiguous space that can satisfy the request, even if the total amount of free space exceeds the size of the request.
@@ -495,4 +497,106 @@ External fragmentation: the free space gets chopped up into little pieces of dif
 `void *malloc(size t size)` takes `size`, which is the number of bytes requested by the application.
 `malloc` manages the `heap`, and the generic data structure used to manage free space in the heap is some kind of "free list".
 
-P 3/18 https://pages.cs.wisc.edu/~remzi/OSTEP/vm-freespace.pdf 17.2 Low Level Mechanisms
+`man mmap`
+
+For a real world example, see the `glibc` [allocator](https://www.gnu.org/software/libc/manual/html_node/The-GNU-Allocator.html)
+
+## Homework
+
+**1) Run `./malloc.py -n 10 -H 0 -p BEST -s 0`, which means 10 random operations (-n 10) with each allocation requiring 0 bytes for the header (-H 0).**
+
+```
+seed 0
+size 100 (addr 1000 - 1099)
+baseAddr 1000
+headerSize 0 // No bytes to allocate for the header
+alignment -1 // no alignment, so allocated blocks can be exactly what's requested.
+policy BEST
+listOrder ADDRSORT
+coalesce False
+numOps 10
+range 10
+percentAlloc 50
+allocList 
+compute False
+
+ptr[0] = Alloc(3) returned 1000 (searched 1 element)
+Free List [ Size 1 ]: [ addr:1003 sz:97 ]
+
+Free(ptr[0])
+returned 0
+Free List [ Size 2 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:97 ]
+
+ptr[1] = Alloc(5) returned 1003 (searched 2 elements)
+Free List [ Size 2 ]: [ addr:1000 sz:3 ] [ addr:1008 sz:92 ]
+
+Free(ptr[1])
+returned 0
+Free List [ Size 3 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:5 ] [ addr:1008 sz:92 ]
+
+ptr[2] = Alloc(8) returned 1008 (searched 3 elements)
+Free List [ Size 3 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:5 ] [ addr:1016 sz:84 ]
+
+Free(ptr[2])
+returned 0
+Free List [ Size 4 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:5 ] [ addr:1008 sz:8 ] [ addr:1016 sz:84 ]
+
+ptr[3] = Alloc(8) returned 1008 (searched 4 elements)
+Free List [ Size 3 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:5 ] [ addr:1016 sz:84 ]
+
+Free(ptr[3])
+returned 0
+List [ Size 4 ]: [ addr:1000 sz:3 ] [ addr:1003 sz:5 ] [ addr:1008 sz:8 ] [ addr:1016 sz:84 ] 
+
+ptr[4] = Alloc(2) returned 1000 (searched 4 elements)
+Free List [ addr:1002 sz:1 ] [ addr:1003 sz:5 ] [ addr:1008 sz:8 ] [ addr:1016 sz:84 ] 
+
+ptr[5] = Alloc(7) returned 1008 (searched 4 elements)
+Free List [ addr:1002 sz:1 ] [ addr:1003 sz:5 ] [ addr:1015 sz:1 ] [ addr:1016 sz:84 ] 
+```
+
+**2) How are the results different when using a WORST fit policy to search the free list (-p WORST)? What changes?**
+
+Run `./malloc.py -n 10 -H 0 -p WORST -s 0`
+
+By the end of the last Alloc operation, the free list has a larger number of "free" nodes in it that if you had used the "BEST" policy. But with the "BEST" policy it seems like External Fragmentation is more likely, since it's easier for the free units of memory to end up chopped up into increasingly smaller pieces. 
+
+**3) What about when using FIRST fit (-p FIRST)? What speeds up when you use first fit?**
+
+Searching through the "free" nodes in the list speeds up with the First fit policy. When the policy finds a node that "fits" that node is used immediately rather than searching the entire list to find the "best" fit.
+
+**4)Use the different free list orderings (-l ADDRSORT, -l SIZESORT+, -l SIZESORT-) to see how the policies and the list orderings interact.**
+
+Sorting the nodes has no impact on BEST, since all the nodes are traversed regardless. 
+The default seems to "ADDRSORT", where the list is sorted by addresses from least to highest. So setting `-l ADDRSORT` has no impact from the default.
+Sorting from largest node size to smallest when using the FIRST policy means that the largest block is always used for memory allocation until its chopped up into small enough pieces. The final state of the largest node with SIZESORT- and FIRST is: `[ addr:1033 sz:67 ]` Whereas with ADDRSORT it is: `[ addr:1016 sz:84 ]`
+
+**5) Coalescing of a free list can be quite important. Increase the number of random allocations (say to -n 1000). What happens to larger allocation requests over time? Run with and without coalescing (i.e., without and with the -C flag). What differences in outcome do you see? How big is the free list over time in each case? Does the ordering of the list matter in this case?**
+
+Run `./malloc.py -n 1000 -H 0 -p (BEST|WORST|FIRST) -s 0`
+
+BEST with coalescing:
+
+The final operation is
+
+ptr[514] = Alloc(2) returned 1000 (searched 1 elements)
+Free List [ Size 1 ]: [ addr:1002 sz:98 ]
+
+BEST without coalescing results in a large free list of 31 small nodes. Eventually most Alloc calls return -1 because none of the nodes are large enough to fulfill the request.
+
+FIRST with coalescing and sorted by ADDRSORT gives this for the final operation
+
+ptr[516] = Alloc(10) returned 1000 (searched 1 elements)
+Free List [ Size 1 ]: [ addr:1010 sz:90 ]
+
+This is very similar to BEST. However, if you sort from largest size to smallest in the Free List you end up with a lot of External Fragmentation (small nodes in the list) similar to not using coalescing. So ordering the list does matter a lot when using FIRST.
+
+FIRST without coalescing also results in many small sized nodes in the free list and Alloc calls that are rejected.
+
+**6) What happens when you change the percent allocated fraction -P to higher than 50? What happens to allocations as it nears 100? What about as the percent nears 0?**
+
+The more Allocs you have, the greater the chance you will run out of memory and get returns of -1 for your allocs. If no memory is freed, you will run out of space. If you have very few allocs and a lot of frees (i.e -P 05), you will see a lot of external fragmentation for BEST WORST and FIRST unless you enable free node coalescing. 
+
+# Introduction to Paging
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf
