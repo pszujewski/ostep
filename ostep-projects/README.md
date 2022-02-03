@@ -58,7 +58,7 @@ journey; you'll have to do more on your own to truly become proficient.
 
 ### Virtual Memory
 
-* Memory Allocator
+* Memory Allocator (see ./memory-allocator)
 
 ### Concurrency
 
