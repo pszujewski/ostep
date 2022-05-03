@@ -604,7 +604,7 @@ Paging is dividing memory into fixed-size chunks in virtual memory. Each fixed-s
 
 A processes virtual address space is not contiguous in memory even if it "appears" that way to a process. Virtual memory pages are assigned to a process by the OS. The OS keeps a "free list" of unused (free) pages. Physical memory is divided into fixed-size **page frames** into which a process' virtual memory page can be "placed."
 
-The page table is a per process data structure that stores address translatios for each virtual page in the process' address space, thus letting us know where each page resides in physical memory.
+The page table is a per process data structure that stores address translations for each virtual page in the process' address space, thus letting us know where each page resides in physical memory.
 
 The virtual address for a process is split into two components: the **virtual page number (vpn)** and the **offset** within the page. If a process' virtual address space is (very very small) only 64 bytes, then a virtual address would be 6 bits (`2^6 = 64 bytes`), and represented as follows:
 
@@ -625,3 +625,36 @@ It is possible to "swap" a page to disk, which is a strategy the OS uses to free
 The page table data structure is composed of a page table entry (PTE). In x86 architecture, a 32-bit PTE has a few key bits that convey information about the page. For example, a read/write bit conveys if the page can be read and or written to. A user/ supervisor bit conveys if a user-mode process can access the memory page. There are a few bits that determine how hardware caching works, there is a "present" bit that conveys if the page has been "swapped" to disk or resides in memory currently. An "accessed bit" to convey if the page has been used recently, a dirty bit, and also the Page Frame Number (PFN) itself which might be many bits long based on the total number of addresses avaialble in the system.
 
 ## Homework
+
+Steps to translate a virtual address to a physical address
+
+1. Calculate total number of pages in the address space.
+   Total = Address space size / Page size
+   Then solve 2^x == Total, where x is the number of bits required to represent PTE index in the VA.
+   Example for a 16K address space:
+   (16 \* 1024) / (1024 \* 4) === 4
+   2^x = 4 -> x == 2, so 2 bits are required for the PTE index.
+
+2. Calculate the total size of a virtual address in the address
+   2^x = Total space of address space, where x is number of bits in a virtual address.
+   For example:
+   2^14 == 16384 (16K or 16 \* 1024), so 14 bit VAs in a 16K address space.
+
+3. Translate a virtual address to binary and retrieve PTE
+   0x00003229 -> 11 001000101001 -> idx === 3
+   idx | offset
+
+4. Match idx to PTE index and get PTE
+   Page Table (from entry 0 down to the max size)
+   [ 0] 0x8000000c
+   [ 1] 0x00000000
+   [ 2] 0x00000000
+   [ 3] 0x80000006
+
+5. Validate PTE
+   0x80000006 from index 3 (11) -> 10000000000000000000000000000110
+   Highest order bit is "1", so it's valid
+
+6. Use lowest order bits to obtain physical address
+   0110 | 001000101001 -> (decimal 25129)
+   PFN | offset
