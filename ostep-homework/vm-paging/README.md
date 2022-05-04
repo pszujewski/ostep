@@ -198,3 +198,45 @@ VA 0x00001369 (decimal: 4969) --> Invalid (VPN 1 not valid)
 VA 0x00001e80 (decimal: 7808) --> Invalid (VPN 1 not valid)
 VA 0x00002556 (decimal: 9558) --> Invalid (VPN 2 not valid)
 VA 0x00003a1e (decimal: 14878) --> 00006a1e (decimal 27166) [VPN 3]
+
+Steps to translate a virtual address to a physical address
+
+1. Calculate total number of pages in the address space.
+   Total = Address space size / Page size
+   Then solve 2^x == Total, where x is the number of bits required to represent PTE index in the VA.
+   Example for a 16K address space:
+   (16 \* 1024) / (1024 \* 4) === 4
+   2^x = 4 -> x == 2, so 2 bits are required for the PTE index.
+
+   Total = 16k / 1k == 16
+   2^4 = 16 -> so 4 bits required for PTE idx
+
+2. Calculate the total size of a virtual address in the address
+   2^x = Total space of address space, where x is number of bits in a virtual address.
+   For example:
+   2^14 == 16384 (16K or 16 \* 1024), so 14 bit VAs in a 16K address space.
+
+   Same as above
+
+3. Translate a virtual address to binary and retrieve PTE
+   0x00003229 -> 11 001000101001 -> idx === 3
+   idx | offset
+
+   0x00003385 -> 1100 1110000101 -> idx === 12
+
+4. Match idx to PTE index and get PTE
+   Page Table (from entry 0 down to the max size)
+   [ 0] 0x8000000c
+   [ 1] 0x00000000
+   [ 2] 0x00000000
+   [ 3] 0x80000006
+
+5. Validate PTE
+   0x80000006 from index 3 (11) -> 10000000000000000000000000000110
+   Highest order bit is "1", so it's valid
+
+6. Use lowest order bits to obtain physical address
+   0110 | 001000101001 -> (decimal 25129)
+   PFN | offset
+
+01111 11 1000 0101 -> 16261 -> 3F85

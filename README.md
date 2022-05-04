@@ -635,10 +635,12 @@ Steps to translate a virtual address to a physical address
    (16 \* 1024) / (1024 \* 4) === 4
    2^x = 4 -> x == 2, so 2 bits are required for the PTE index.
 
-2. Calculate the total size of a virtual address in the address
+2. Calculate the total size of a virtual address in the address space
    2^x = Total space of address space, where x is number of bits in a virtual address.
+   Do the same for the physical address space
    For example:
    2^14 == 16384 (16K or 16 \* 1024), so 14 bit VAs in a 16K address space.
+   2^15 == 32k (physical memory addresses), so 15 bits are required for an address.
 
 3. Translate a virtual address to binary and retrieve PTE
    0x00003229 -> 11 001000101001 -> idx === 3
@@ -658,3 +660,24 @@ Steps to translate a virtual address to a physical address
 6. Use lowest order bits to obtain physical address
    0110 | 001000101001 -> (decimal 25129)
    PFN | offset
+
+# Translation Lookaside Buffers
+
+Paging as the core mechanism to support virtual memory requires a lot of mapping information and therefore extra use of memory and memory lookups for each virtual address. The hardware helps the OS speed up the VA to PA translation.
+
+A translation lookaside buffer (TLB) is a part of the chip's memory-management unit and is a hardware cache for popular virtual-to-physical address translations. A better name would therefore be an "address-translation cache."
+
+In modern RISC (reduced-instruction set) computers, the system expects the OS (software) to manage the TLB. if the hardware raises a "TLB MISS" when translating a virtual address, the current instruction stream is paused, the privilege level is raised to kernel mode, and the CPU jumps to a "TLB MISS" trap handler to handle the exception, i.e translate the virtual address using the OS' data structures for the Page Table, and save the translation in the TLB. Once the "Return from trap" is issued, the hardware retries the TLB access.
+
+The TLB contains virtual-to-physical translations that are only valid for the currently running process, so when context switching, the os must be careful to ensure that the next process does not accidentally use translations from some previously run process.
+
+Some hardware systems flush the TLB (set all entries to 0) on a context switch. Others support an address space identifier field in the TLB.
+
+See `man mmap`.
+
+## Homework
+
+projects/vm-tlb
+
+See https://man7.org/linux/man-pages/man2/getpagesize.2.html
+`sysconf(_SC_PAGESIZE)`
