@@ -7,10 +7,14 @@ function run() {
 
 	while (i < numberOfPagesSeed * 10001) {
 		const numPages = (numberOfPagesSeed * i).toString();
+		console.log("numPages => ", numPages);
 
-		execFile("./tlb", [numPages], (_, stdout, stderr) => {
+		execFile("./tlb", [numPages], (fileException, stdout, stderr) => {
 			console.log(stdout);
-			console.log("\n");
+			console.log(stderr);
+			if (fileException) {
+				console.log(fileException);
+			}
 		});
 
 		i = i * 10;

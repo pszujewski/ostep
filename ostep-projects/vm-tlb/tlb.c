@@ -16,7 +16,9 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int const NUMPAGES = (int)argv[1][0];
+    char *numPagesArg = argv[1];
+
+    int const NUMPAGES = atoi(numPagesArg);
     int list[NUMPAGES * PAGESIZE * 2];
 
     int limit = NUMPAGES * PAGESIZE;
