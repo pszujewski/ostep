@@ -27,8 +27,10 @@ int main(int argc, char *argv[])
 
     int i;
 
-    struct timespec timerStart;
+    struct timespec timerStart, timerEnd;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerStart);
+
+    // Look at pseudo code example again and try to simplify?
 
     for (i = 0; i < limit; i += jump)
     {
@@ -36,7 +38,6 @@ int main(int argc, char *argv[])
         listAccessCount++;
     }
 
-    struct timespec timerEnd;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerEnd);
     
     uint64_t diff = BILLION * (timerEnd.tv_sec - timerStart.tv_sec) + timerEnd.tv_nsec - timerStart.tv_nsec;
