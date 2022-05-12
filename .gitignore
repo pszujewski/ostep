@@ -49,6 +49,8 @@ Thumbs.db
 
 !*/
 
+!makefile
+
 tests-out/
 
 2022-steps.txt
