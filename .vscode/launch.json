@@ -9,7 +9,7 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/ostep-projects/vm-tlb/tlb",
-			"args": ["2000"],
+			"args": ["256"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
 			"environment": [],

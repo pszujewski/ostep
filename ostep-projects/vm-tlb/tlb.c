@@ -1,9 +1,10 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <time.h>
+#include <stdint.h>	/* for uint64 definition */
 
-#define BILLION 1000000000.0
+#define BILLION 1000000000L
 
 int main(int argc, char *argv[])
 {
@@ -19,36 +20,30 @@ int main(int argc, char *argv[])
     char *numPagesArg = argv[1];
 
     int const NUMPAGES = atoi(numPagesArg);
-    int list[NUMPAGES * PAGESIZE * 2];
+    int list[(NUMPAGES * PAGESIZE) + jump];
 
     int limit = NUMPAGES * PAGESIZE;
-    int listAccessCount = 0;
-
-    long microsecondsTotal = 0;
+    uint64_t listAccessCount = 0;
 
     int i;
-    struct timeval start, end;
 
-    // Given the NUMPAGES
-    // Find the average time each access of the array takes.
-    // You should see it dramatically increase as the NUMPAGES goes up a lot.
+    struct timespec timerStart;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerStart);
 
     for (i = 0; i < limit; i += jump)
     {
-        gettimeofday(&start, NULL);
         list[i] += 1;
-
         listAccessCount++;
-        gettimeofday(&end, NULL);
-
-        long seconds = (end.tv_sec - start.tv_sec);
-        long micros = ((seconds * 1000000) + end.tv_usec) - (start.tv_usec);
-
-        microsecondsTotal += micros;
     }
 
-    float averageTimePerAccess = (float)microsecondsTotal / (float)listAccessCount;
-    printf("Average microseconds per access is %f for a page number seed of %d\n", averageTimePerAccess, NUMPAGES);
-    // https://www.techiedelight.com/find-execution-time-c-program/
-    // https://stackoverflow.com/questions/13772567/how-to-get-the-cpu-cycle-count-in-x86-64-from-c/64898073#64898073
+    struct timespec timerEnd;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerEnd);
+    
+    uint64_t diff = BILLION * (timerEnd.tv_sec - timerStart.tv_sec) + timerEnd.tv_nsec - timerStart.tv_nsec;
+
+    long ns = (long long unsigned int)diff;
+    long accesses = (long long unsigned int)listAccessCount;
+
+    long averageTimePerAccess = ns / accesses;
+    printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, NUMPAGES);
 }
