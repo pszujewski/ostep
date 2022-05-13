@@ -21,10 +21,16 @@ int main(int argc, char *argv[])
 
     char *numPagesToAccessArg = argv[1];
 
-    int const numPagesToAccess = atoi(numPagesToAccessArg);
-    int limit = numPagesToAccess * jump;
+    int numPagesToAccess = atoi(numPagesToAccessArg);
+    int size = numPagesToAccess * jump;
 
-    int list[limit];
+    int *a = (int *)malloc(size * 4);
+
+    if (a == NULL)
+    {
+        printf("Failed to allocate array\n");
+        exit(1);
+    }
 
     int i;
     uint64_t listAccessCount = 0;
@@ -32,9 +38,13 @@ int main(int argc, char *argv[])
     TS *timerStart = malloc(sizeof(TS));
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timerStart);
 
-    for (i = 0; i < limit; i += jump)
+    // The following loop accesses every 1024-th element in the integer array
+    // Since each integer is 4 bytes large, this means you are accessing one
+    // integer per memory page, since each page is 4Kb (4 * 1024 bytes) large.
+
+    for (i = 0; i < size; i += jump)
     {
-        list[i] += 1;
+        a[i] += 1;
         listAccessCount++;
     }
 
