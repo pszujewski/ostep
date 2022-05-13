@@ -1,15 +1,30 @@
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sched.h>
 #include <stdint.h> /* for uint64 definition */
 
 #define BILLION 1000000000L
 
 typedef struct timespec TS;
 
+size_t addAllValuesInList(int *a, size_t elementsCount);
+
 int main(int argc, char *argv[])
 {
+    /* set CPU affinity to 1 core */
+    cpu_set_t cpuset;
+
+    CPU_ZERO(&cpuset);
+    CPU_SET(0, &cpuset);
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset)) // if the pid is "0", the calling thread is used.
+    {
+        fprintf(stderr, "Error setting cpu affinity\n");
+        exit(1);
+    }
+
     long pageSize = sysconf(_SC_PAGESIZE); // _SC_PAGESIZE == 4kB == 4096 bytes
 
     int jump = pageSize / sizeof(int); // int == 4 bytes
@@ -52,11 +67,11 @@ int main(int argc, char *argv[])
     // Since each integer is 4 bytes large, this means you are accessing one
     // integer per memory page, since each page is 4Kb (4 * 1024 bytes) large.
 
-    for (j = 0; i < numTrials; j++)
+    for (j = 0; j < numTrials; j++)
     {
         for (i = 0; i < size; i += jump)
         {
-            a[i] += 1;
+            a[i] = 1 + i + j; // Try to ensure compiler can't remove these loops
         }
     }
 
@@ -65,10 +80,23 @@ int main(int argc, char *argv[])
 
     uint64_t trialTime = BILLION * (timerEnd->tv_sec - timerStart->tv_sec) + timerEnd->tv_nsec - timerStart->tv_nsec; // Understand better
 
+    size_t total = addAllValuesInList(a, size);
+    printf("Total: %ld\n", total);
+
     free(a);
     free(timerEnd);
     free(timerStart);
 
     long averageTimePerAccess = (long)trialTime / (long)(numPagesToAccess * numTrials);
     printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, numPagesToAccess);
+}
+
+size_t addAllValuesInList(int *a, size_t elementsCount)
+{
+    int total = 0;
+    for (size_t i = 0; i < elementsCount; i++)
+    {
+        total += a[i];
+    }
+    return total;
 }
