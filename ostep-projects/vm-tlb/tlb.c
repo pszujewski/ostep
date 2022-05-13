@@ -6,31 +6,31 @@
 
 #define BILLION 1000000000L
 
+typedef struct timespec TS;
+
 int main(int argc, char *argv[])
 {
-    long PAGESIZE = sysconf(_SC_PAGESIZE); // _SC_PAGESIZE == 4kB == 4096 bytes
+    long pageSize = sysconf(_SC_PAGESIZE); // _SC_PAGESIZE == 4kB == 4096 bytes
 
-    int jump = PAGESIZE / sizeof(int); // int == 4 bytes
+    int jump = pageSize / sizeof(int); // int == 4 bytes
 
     if (argc == 1)
     {
         exit(1);
     }
 
-    char *numPagesArg = argv[1];
+    char *numPagesToAccessArg = argv[1];
 
-    int const NUMPAGES = atoi(numPagesArg);
-    int list[(NUMPAGES * PAGESIZE) + jump];
+    int const numPagesToAccess = atoi(numPagesToAccessArg);
+    int limit = numPagesToAccess * jump;
 
-    int limit = NUMPAGES * PAGESIZE;
-    uint64_t listAccessCount = 0;
+    int list[limit];
 
     int i;
+    uint64_t listAccessCount = 0;
 
-    struct timespec timerStart, timerEnd;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerStart);
-
-    // Look at pseudo code example again and try to simplify?
+    TS *timerStart = malloc(sizeof(TS));
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timerStart);
 
     for (i = 0; i < limit; i += jump)
     {
@@ -38,13 +38,17 @@ int main(int argc, char *argv[])
         listAccessCount++;
     }
 
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerEnd);
+    TS *timerEnd = malloc(sizeof(TS));
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timerEnd);
 
-    uint64_t diff = BILLION * (timerEnd.tv_sec - timerStart.tv_sec) + timerEnd.tv_nsec - timerStart.tv_nsec;
+    uint64_t diff = BILLION * (timerEnd->tv_sec - timerStart->tv_sec) + timerEnd->tv_nsec - timerStart->tv_nsec;
+
+    free(timerStart);
+    free(timerEnd);
 
     long ns = (long long unsigned int)diff;
     long accesses = (long long unsigned int)listAccessCount;
 
     long averageTimePerAccess = ns / accesses;
-    printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, NUMPAGES);
+    printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, numPagesToAccess);
 }
