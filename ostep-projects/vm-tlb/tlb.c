@@ -49,13 +49,23 @@ int main(int argc, char *argv[])
 
     int size = numPagesToAccess * jump;
 
-    int *a = (int *)malloc(size * sizeof(int)); // Array of int
+    /**
+     * @brief
+     * calloc() allocates the memory and also initializes every byte in the allocated memory to 0.
+     * If you try to read the value of the allocated memory without initializing it, you’ll get 0
+     * as it has already been initialized to 0 by calloc().
+     */
+    int *a = (int *)calloc(size, sizeof(int)); // Array of int, or try using malloc(size * sizeof(int));
 
     if (a == NULL)
     {
         printf("Failed to allocate array\n");
         exit(1);
     }
+
+    // Initialize array access before starting test
+    a[0] = 42;
+    a[1] = 42;
 
     int i;
     int j;
@@ -71,7 +81,7 @@ int main(int argc, char *argv[])
     {
         for (i = 0; i < size; i += jump)
         {
-            a[i] = 1 + i + j; // Try to ensure compiler can't remove these loops
+            a[i] = 1 + i + j + (i / jump); // Try to ensure compiler can't remove these loops
         }
     }
 
