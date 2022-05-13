@@ -7,12 +7,12 @@ async function run() {
 	let seed = 5;
 	const multiplier = 10;
 	const limit = seed * 1000000;
-	const trials = 2;
 
 	while (seed < limit) {
 		try {
 			const pagesToTouch = seed;
 			seed = seed * multiplier;
+			const trials = getRandomTrialsArg();
 			const result = await tlb(pagesToTouch, trials);
 			console.log(result);
 		} catch (err) {
@@ -34,4 +34,9 @@ function tlb(pages, trials) {
 			}
 		});
 	});
+}
+
+function getRandomTrialsArg() {
+	const possibleTrials = [2, 3, 4];
+	return possibleTrials[Math.floor(Math.random() * possibleTrials.length)];
 }
