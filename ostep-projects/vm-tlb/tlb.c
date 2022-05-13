@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdint.h>	/* for uint64 definition */
+#include <stdint.h> /* for uint64 definition */
 
 #define BILLION 1000000000L
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     }
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &timerEnd);
-    
+
     uint64_t diff = BILLION * (timerEnd.tv_sec - timerStart.tv_sec) + timerEnd.tv_nsec - timerStart.tv_nsec;
 
     long ns = (long long unsigned int)diff;
