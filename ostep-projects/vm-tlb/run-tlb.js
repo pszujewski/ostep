@@ -1,24 +1,35 @@
 #!/usr/bin/env node
 const { execFile } = require("child_process");
 
-function run() {
-	let i = 1;
-	const numberOfPagesSeed = 2;
+run();
 
-	while (i < numberOfPagesSeed * 10001) {
-		const numPages = (numberOfPagesSeed * i).toString();
-		console.log("numPages => ", numPages);
+async function run() {
+	let seed = 5;
+	const multiplier = 10;
+	const limit = seed * 1000000;
 
-		execFile("./tlb", [numPages], (fileException, stdout, stderr) => {
-			console.log(stdout);
-			console.log(stderr);
-			if (fileException) {
-				console.log(fileException);
-			}
-		});
-
-		i = i * 10;
+	while (seed < limit) {
+		try {
+			const arg = seed;
+			seed = seed * multiplier;
+			const result = await tlb(arg);
+			console.log(result);
+		} catch (err) {
+			console.error(err);
+		}
 	}
 }
 
-run();
+function tlb(arg) {
+	return new Promise((resolve, reject) => {
+		execFile("./tlb", [arg.toString()], (fileException, stdout, stderr) => {
+			if (stderr.length > 0) {
+				reject(stderr);
+			} else if (fileException) {
+				reject(fileException);
+			} else {
+				resolve(stdout);
+			}
+		});
+	});
+}

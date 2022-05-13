@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     int numPagesToAccess = atoi(numPagesToAccessArg);
     int size = numPagesToAccess * jump;
 
-    int *a = (int *)malloc(size * 4);
+    int *a = (int *)malloc(size * sizeof(int)); // Array of int
 
     if (a == NULL)
     {
