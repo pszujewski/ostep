@@ -7,12 +7,13 @@ async function run() {
 	let seed = 5;
 	const multiplier = 10;
 	const limit = seed * 1000000;
+	const trials = 2;
 
 	while (seed < limit) {
 		try {
-			const arg = seed;
+			const pagesToTouch = seed;
 			seed = seed * multiplier;
-			const result = await tlb(arg);
+			const result = await tlb(pagesToTouch, trials);
 			console.log(result);
 		} catch (err) {
 			console.error(err);
@@ -20,9 +21,10 @@ async function run() {
 	}
 }
 
-function tlb(arg) {
+function tlb(pages, trials) {
+	const args = [pages.toString(), trials.toString()];
 	return new Promise((resolve, reject) => {
-		execFile("./tlb", [arg.toString()], (fileException, stdout, stderr) => {
+		execFile("./tlb", args, (fileException, stdout, stderr) => {
 			if (stderr.length > 0) {
 				reject(stderr);
 			} else if (fileException) {

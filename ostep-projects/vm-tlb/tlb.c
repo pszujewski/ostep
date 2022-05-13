@@ -14,14 +14,24 @@ int main(int argc, char *argv[])
 
     int jump = pageSize / sizeof(int); // int == 4 bytes
 
-    if (argc == 1)
+    if (argc < 3)
     {
+        fprintf(stderr, "Usage: ./tlb <int: pages> <int: trials>");
         exit(1);
     }
 
     char *numPagesToAccessArg = argv[1];
+    char *numTrialsArg = argv[2];
 
+    if (numPagesToAccessArg == NULL || numTrialsArg == NULL)
+    {
+        fprintf(stderr, "Usage: ./tlb <int: pages> <int: trials>");
+        exit(1);
+    }
+
+    int numTrials = atoi(numTrialsArg);
     int numPagesToAccess = atoi(numPagesToAccessArg);
+
     int size = numPagesToAccess * jump;
 
     int *a = (int *)malloc(size * sizeof(int)); // Array of int
@@ -33,7 +43,7 @@ int main(int argc, char *argv[])
     }
 
     int i;
-    uint64_t listAccessCount = 0;
+    int j;
 
     TS *timerStart = malloc(sizeof(TS));
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timerStart);
@@ -42,23 +52,23 @@ int main(int argc, char *argv[])
     // Since each integer is 4 bytes large, this means you are accessing one
     // integer per memory page, since each page is 4Kb (4 * 1024 bytes) large.
 
-    for (i = 0; i < size; i += jump)
+    for (j = 0; i < numTrials; j++)
     {
-        a[i] += 1;
-        listAccessCount++;
+        for (i = 0; i < size; i += jump)
+        {
+            a[i] += 1;
+        }
     }
 
     TS *timerEnd = malloc(sizeof(TS));
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, timerEnd);
 
-    uint64_t diff = BILLION * (timerEnd->tv_sec - timerStart->tv_sec) + timerEnd->tv_nsec - timerStart->tv_nsec;
+    uint64_t trialTime = BILLION * (timerEnd->tv_sec - timerStart->tv_sec) + timerEnd->tv_nsec - timerStart->tv_nsec; // Understand better
 
-    free(timerStart);
+    free(a);
     free(timerEnd);
+    free(timerStart);
 
-    long ns = (long long unsigned int)diff;
-    long accesses = (long long unsigned int)listAccessCount;
-
-    long averageTimePerAccess = ns / accesses;
+    long averageTimePerAccess = (long)trialTime / (long)(numPagesToAccess * numTrials);
     printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, numPagesToAccess);
 }
