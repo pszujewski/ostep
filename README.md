@@ -681,3 +681,9 @@ projects/vm-tlb
 
 See https://man7.org/linux/man-pages/man2/getpagesize.2.html
 `sysconf(_SC_PAGESIZE)`
+
+# Advanced Page Tables
+
+A Multi-level page table means that the OS does not need to maintain a large contiguous block of memory for the Page Table, since the VPN is the index into the Page Table from which the Page Table Entry (PTE) can be retrieved. Instead, given a new data structure called the Page Table Directory, the OS can dynamically allocate additional memory to a page table that is free from the constraint of needing to be contiguous.
+
+For example, in a 16kB address space with 64 byte pages, there are a total of 256 pages (2^8). Therefore a contiguous Page Table would require 256 entries. However, using a multi-level approach, those could themselves be broken up into 16 pages 265 / 64 = 16. The Page Directory holds therefore 16 entries, each one referencing a "page" of the Page Table. As for example the heap grows, more memory is required by the process and more memory can be allocated to the Page Table rather than needing to allocate the entire page table up front at once (as with the linear page table model).

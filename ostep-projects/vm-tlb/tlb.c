@@ -10,7 +10,7 @@
 
 typedef struct timespec TS;
 
-size_t addAllValuesInList(int *a, size_t elementsCount);
+long addAllValuesInList(int *a, size_t elementsCount);
 
 int main(int argc, char *argv[])
 {
@@ -63,10 +63,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Initialize array access before starting test
-    a[0] = 42;
-    a[1] = 42;
-
     int i;
     int j;
 
@@ -90,20 +86,19 @@ int main(int argc, char *argv[])
 
     uint64_t trialTime = BILLION * (timerEnd->tv_sec - timerStart->tv_sec) + timerEnd->tv_nsec - timerStart->tv_nsec; // Understand better
 
-    size_t total = addAllValuesInList(a, size);
-    printf("Total: %ld\n", total);
+    long total = addAllValuesInList(a, size); // The point of this is to just avoid any compiler optimizations from never again referencing the values of "a" in this program
 
     free(a);
     free(timerEnd);
     free(timerStart);
 
-    long averageTimePerAccess = (long)trialTime / (long)(numPagesToAccess * numTrials);
-    printf("Hello! Average nanoseconds per access is %lu for a page number seed of %d\n", averageTimePerAccess, numPagesToAccess);
+    long averageTimePerAccess = (long long unsigned int)trialTime / (long long unsigned int)(numPagesToAccess * numTrials);
+    printf("%lu,%d,%lu\n", averageTimePerAccess, numPagesToAccess, total); // Writes to stdout; {nanoseconds},{numPages}
 }
 
-size_t addAllValuesInList(int *a, size_t elementsCount)
+long addAllValuesInList(int *a, size_t elementsCount)
 {
-    int total = 0;
+    long total = 0;
     for (size_t i = 0; i < elementsCount; i++)
     {
         total += a[i];
