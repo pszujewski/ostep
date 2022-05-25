@@ -248,7 +248,7 @@ total kB 8304 5428 3988
 
 `pmap` displays each separate mapping of the process. A mapping is a range of contiguous pages having the same backend (anonymous or file) and the same access modes. `pmap` provides the size of the mappings instead of the ranges of addresses. Sum the size to the address to get the range of the addresses in the virtual address space.
 
-Using pmap, I see a section labeled [RSS](https://en.wikipedia.org/wiki/Resident_set_size), which stands for Rsident set size, and is the portion of memory occupied by a process that is held in main memory (RAM). The rest of the occupied memory resides in the swap space of file system. Use of resident set size by a process is the total meory consumption of a proces. Some mappings are only partially mapped in physical memory.
+Using pmap, I see a section labeled [RSS](https://en.wikipedia.org/wiki/Resident_set_size), which stands for Rsident set size, and is the portion of memory occupied by a process that is held in main memory (RAM). The rest of the occupied memory resides in the swap space of file system. Use of resident set size by a process is the total memory consumption of a proces. Some mappings are only partially mapped in physical memory.
 
 Each map is associated with a set of modes:
 
@@ -687,3 +687,62 @@ See https://man7.org/linux/man-pages/man2/getpagesize.2.html
 A Multi-level page table means that the OS does not need to maintain a large contiguous block of memory for the Page Table, since the VPN is the index into the Page Table from which the Page Table Entry (PTE) can be retrieved. Instead, given a new data structure called the Page Table Directory, the OS can dynamically allocate additional memory to a page table that is free from the constraint of needing to be contiguous.
 
 For example, in a 16kB address space with 64 byte pages, there are a total of 256 pages (2^8). Therefore a contiguous Page Table would require 256 entries. However, using a multi-level approach, those could themselves be broken up into 16 pages 265 / 64 = 16. The Page Directory holds therefore 16 entries, each one referencing a "page" of the Page Table. As for example the heap grows, more memory is required by the process and more memory can be allocated to the Page Table rather than needing to allocate the entire page table up front at once (as with the linear page table model).
+
+# Beyond Physical Memory: Mechanisms
+
+To support large virtual address spaces for processes, the OS needs to stash away portions of the adress space outside of physical memory. The OS uses a hard disk drive, or SSD drive to accomplish this. Thus, memory pages can be "swapped" in and out of physical memory, less used pages can be stash on disk. Programs don't need to know if a given piece of data is currently stored by the OS on disk or in physical memory. Both are valid in the virtual address space.
+
+`swap space` is the region on disk that is reserved by the OS for moving memory pages in and out of physical memory. Thus the OS reads and writes to this space in page-sized units. The OS needs to remember the `disk address` for pages in swap space.
+
+The `present bit` in a PTE entry will identify whether that page is swapped to disk (0) or in physical memory already (1). The act of accessing a page that is not in physical memory is commonly referred to as a `page fault`. The hardware invokes the OS page-fault handler to determine how to access the page.
+
+If the present bit is 0 in the page table entry (PTE), then the bits in the PTE that normally are used for such data as locating the PFN of the page in memory, are instead used to identfy its location in the swap space on disk. An I/O fetch must occur to retrieve the page from disk. The OS must identify a Phyisical Page Frame in which the swapped page can be loaded into. Then, the PTE must be updated with the PFN, and a present bit of 1 (now in memory). THEN the page fault handler can finally retry the original memory access instruction, which will generate a TLB miss... but at this point the retrieved PTE refers to a Page in memory (present bit is 1), so this PTE can be added to the TLB with its PFN... phew (See page 6, figure 21.2 - Page fault control algorithm)
+
+## Homework
+
+`man vmstat` -> virtual memory usage reporter.
+
+`man /proc` to learn about the pseudo-filesystem for reading from kernel data structures.
+
+`cat /proc/meminfo` to read system memory info.
+
+3. Re: Evaluating the impact of using swap memory in virtual memory.
+   Allocating ~ 4GB to a single user process (using `mem.c` -> `./mem 4000`) means the system has close to 3 GB of "free" memory left, because the system has 8GB in total and some resources are allocated to the OS and its data structures and kernel processes.
+   No data is swapped in/out with just this one user process running.
+   If I allocate 7GB using `mem`, vmstat reports 327088kB swpd and ~126188kB free memory. Without running `mem` it reported 7043392kB free. 7043392 - 126188 = ~6.9GB, which is close to 7 with the remander being filled in by ~0.2GB of swap memory (these values vary every second).
+   Interestingly, after killing `./mem 7000`,the OS "slowly" frees up memory written to "swpd" space on disk.
+
+4. Performance: When ~ 7, 8GB, or > 8GB is allocated in `mem`, vmstat reports the cpu `wa` (Time spent waiting for IO) as skyrocketing. The firt loop in `mem` takes much longer:
+
+```
+# allocate 4GB
+> ./mem 4000
+
+loop 0 in 1573.15 ms (bandwidth: 2542.66 MB/s)
+loop 1 in 714.48 ms (bandwidth: 5598.52 MB/s)
+```
+
+```
+# allocate 12GB
+> ./mem 12000
+
+loop 0 in 19379.70 ms (bandwidth: 464.40 MB/s)
+loop 1 in 76164.79 ms (bandwidth: 118.16 MB/s)
+loop 2 in 79432.61 ms (bandwidth: 113.30 MB/s)
+loop 3 in 73266.04 ms (bandwidth: 122.84 MB/s)
+```
+
+`vmstat` reports ~2GB of swap memory in use in the second case, and cpu I/O "wait" times of ~98 units of time (I can't figure out what the unit is for the "cpu" time section of reporting in vmstate). No swap memory is used in the first case. Using a large amount of swap memory clearly incurs a significant performace hit, as the CPU is blocked.
+
+Using swap memory in loop 0 in the second case, the bandwidth reported is 454.40 MB/s. Bandwidth gives you a sense of how fast the system you're using can move through data. Using no swap memory, the reported bandwidth was 2542.66 MB/s, which is 559% faster.
+
+5. View a summary of swap location using `swapon`:
+
+```
+> swapon -s
+
+Filename                                Type            Size    Used    Priority
+/swap/file                              file            2097152 234804  -2
+```
+
+This is different than I would have expected. The swap location is repored as being a "file" instead of some sort of hardware device. I guess this device is "virtualized" behind the file abstraction. `swapon` reports "Used" as very high because I ran `mem` with 9GB and so swap memory was used and is slowly reclaimed over time by the OS.
