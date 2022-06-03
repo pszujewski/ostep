@@ -203,7 +203,7 @@ When you run memory-user.c and allocate 1 MB of stack based memory to an array o
 
 I get a segmentation fault when trying to allocate an array that is any larger than 2MB.
 
-By default, pmap prints one line for each mapping within the address space of the target process:
+By default, pmap prints one line for each mapping within the address space of the target process. By default `pmap` shows four columns: the virtual address of the mapping, its size, the protection bits of the regios, and the source of the mapping.
 
 6949: ./a.out 1 30
 Address Kbytes RSS Dirty Mode Mapping
@@ -267,6 +267,21 @@ Mappings with no modes help ensure buffers so that pointers don't accidentally t
 For more detail see: https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/
 
 Also notable, is that two processes that are backed by the same file can share certain memory "page" mappings. In other words, the operating system is smart enough to know that it doesn't need to reload all the executable code and static data into virtual memory when it is already there to run an already existing process. This works because these memory mappings have modes that are only "r" or "x" and never "w". If a user program can never "write" to a certain mapping, then there is no reason that this mapping cannot be shared between processes to save memory. The exact size of a memory page can vary between systems.
+
+Another simple example:
+
+```
+0000000000400000 372K r-x-- tcsh
+00000000019d5000 1780K rw--- [anon ]
+00007f4e7cf06000 1792K r-x-- libc-2.23.so
+00007f4e7d2d0000 36K r-x-- libcrypt-2.23.so
+00007f4e7d508000 148K r-x-- libtinfo.so.5.9
+00007f4e7d731000 152K r-x-- ld-2.23.so
+00007f4e7d932000 16K rw--- [stack ]
+
+```
+
+As you can see from this output, the code from the tcsh binary, as well as code from libc, libcrypt, libtinfo, and code from the dynamic linker itself (ld.so) are all mapped into the address space. Also present are two anonymous regions, the heap (the second entry, labeled anon) and the stack (labeled stack). Memory-mapped files provide a straightforward and efficient way for the OS to construct a modern address space.
 
 # Memory
 
@@ -732,7 +747,7 @@ loop 2 in 79432.61 ms (bandwidth: 113.30 MB/s)
 loop 3 in 73266.04 ms (bandwidth: 122.84 MB/s)
 ```
 
-`vmstat` reports ~2GB of swap memory in use in the second case, and cpu I/O "wait" times of ~98 units of time (I can't figure out what the unit is for the "cpu" time section of reporting in vmstate). No swap memory is used in the first case. Using a large amount of swap memory clearly incurs a significant performace hit, as the CPU is blocked.
+`vmstat` reports ~2GB of swap memory in use in the second case, and cpu I/O "wait" times of ~98 units of time (I can't figure out what the unit is for the "cpu" time section of reporting in vmstat). No swap memory is used in the first case. Using a large amount of swap memory clearly incurs a significant performace hit, as the CPU is blocked.
 
 Using swap memory in loop 0 in the second case, the bandwidth reported is 454.40 MB/s. Bandwidth gives you a sense of how fast the system you're using can move through data. Using no swap memory, the reported bandwidth was 2542.66 MB/s, which is 559% faster.
 
@@ -746,3 +761,49 @@ Filename                                Type            Size    Used    Priority
 ```
 
 This is different than I would have expected. The swap location is repored as being a "file" instead of some sort of hardware device. I guess this device is "virtualized" behind the file abstraction. `swapon` reports "Used" as very high because I ran `mem` with 9GB and so swap memory was used and is slowly reclaimed over time by the OS.
+
+# Beyond Physical Memory: Policies
+
+The _Replacement Policy_ of the OS dictates which pages are evicted when memory pressure is high.
+The average memory access time (AMAT) is measured by computer architects to mesure hardware cache performance. The AMAT can be calculated as follows:
+
+```
+AMAT = Tm + (Pmiss * Td)
+
+// Tm == Cost of accessing main memory
+// Pmiss == The probability of not finding data in the cache
+// Td == Cost of accessing data pages on disk.
+```
+
+A compulsory miss for a memory page (i.e page not in memory) is when a "miss" occurs simply because the page hasn't been loaded into main memory yet (it's the first time it is referenced). Sometimes when evaluating the memory cost of a certain cache policy, it makes sense to disregard this first miss from your analysis because there's nothing you can do about it, and instead focus on the cache misses that occur due to you policy of when to clear or replace all or parts of the cache.
+
+The Least-Frequently-Used (LFU) policy replaces the least frequently used page when an eviction must take place, and the Least-Recently-Used (LRU) policy replaces teh least recently used page. This are stateful policies that track the "use" of memory pages over time to help in deciding which pages to relpace in the cache with new pages.
+
+# Complete VM Systems
+
+Linux runs effectively on systems as small and underpowered as phones to the most scalable multicore systems found in modern datacenters. Thus, its VM system must be flexible enough to run successfully in all of those scenarios.
+
+The kernel is mapped onto each user process virtual address space using a "system space" within the user process virtual address space. In this way, the OS, its trap table (i.e), its heap, data structures, etc appear as a (protected) "library" accessible to each process. The CPU maintains "S" (system) base and bounds registers. On a context switch, the OS does not swap out the references in the S registers because these should always point to the kernel. As a result the "same" kernel structures are mapped into each user address space.
+
+OS implementation depends on hardware support: "The OS does not want user applicaions reading or writing OS data or code. Thus, the hardware must support different protection levels for pages to enable this. The VAX (old OS example...) did so by specifying in protection bits in the page table, what privelage level the CPU must be at in order to access a particular page. Thus system data and code are set to a higher level of protection than user data and code; an attempted access to such information from user code will generate a trap into the OS, and a likely termination of the offending process."
+
+In the passage above, note that the particular implementation regarding how OS code and data structures are protected from random accesses from user-level applications depends on hardware implementations. For example, the CPU must support "setting" a user-level or kernel-level bit. The OS manages the page table in this example. Each PTE denotes the protection level of each page. The hardware must also support a "trap table", and the OS must know this. The OS provides the trap table to the hardware. The hardware must also support a page table, otherwise virtual memory cannot be supported.
+
+Resident Set Size (RSS) denotes the maximum number of pages a process can keep in memory. To examine the address space of a linux process, again, use `pmap`.
+
+## The Linux Virtual Memory System
+
+The book focuses on Linux for Intel x86 architecture. While Linux runs on many different processor architectures, Linux on x86 is the most dominant. "32-bit Linux" is Linux with a 32-bit address space for each process.
+
+the x86 architecture provides a hardware managed, multi-level page-table structure, with one page table per process; the OS simply sets up mappings in its memory, points a priveleged register at the start of the page directory, and the hardware handles the rest. On context switches, the OS makes sure the hardware page directory registers are set appropriately.
+
+The standard page size is 4KB (4096 bytes) in Linux for x86 64-bit architecture, where "64-bit" refers to the size of a process' virtual address space. But Linux also supports "huge pages", which can be as large as 2MB or even 1GB. One advantage of _huge pages_ is that the OS can maintain smaller page tables (less memory pressure in the kernel). But this is not the main benefit. The main benefit is in performace, as fewer PTEs means fewer TLB misses need to be serviced. Applications can spend fewer CPU cycles servicing TLB misses with larger pages.
+
+Linux applications can explicitly request memory allocations with large pages using `mmap()` or `shmget()` calls.
+
+The Linux page cache keeps "popular"/ often used pages in memory from these primary sources:
+
+1. memory-mapped files -> file data, and metadata from devices (usually accessed by directing `read()` and `write()` calls to the file system).
+2. anonymous memory -> heap and stack pages that comprise each process. Called "anonymous" because there is no named file underneath of it, but rather just swap space.
+
+These entities are kept in a page cache hash table, allowing for quick lookup when said data is needed.
