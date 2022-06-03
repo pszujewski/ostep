@@ -807,3 +807,5 @@ The Linux page cache keeps "popular"/ often used pages in memory from these prim
 2. anonymous memory -> heap and stack pages that comprise each process. Called "anonymous" because there is no named file underneath of it, but rather just swap space.
 
 These entities are kept in a page cache hash table, allowing for quick lookup when said data is needed.
+
+P. 15
