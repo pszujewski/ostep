@@ -615,6 +615,8 @@ The more Allocs you have, the greater the chance you will run out of memory and 
 
 # Introduction to Paging
 
+Computer Memory is referenced by a process on each instructin fetch, as well as explicit loads and stores.
+
 Paging is dividing memory into fixed-size chunks in virtual memory. Each fixed-size unit is called a **page**. Pages help avoid the problem of segmentation.
 
 A processes virtual address space is not contiguous in memory even if it "appears" that way to a process. Virtual memory pages are assigned to a process by the OS. The OS keeps a "free list" of unused (free) pages. Physical memory is divided into fixed-size **page frames** into which a process' virtual memory page can be "placed."
@@ -808,4 +810,14 @@ The Linux page cache keeps "popular"/ often used pages in memory from these prim
 
 These entities are kept in a page cache hash table, allowing for quick lookup when said data is needed.
 
-P. 15
+https://spectreattack.com/
+
+# Concurrency
+
+Threads have their own PCs (program counters) from which instructions are fetched. A multi-threaded program has more than one poin of execution. Each thread is like a separate process, except they all share the same address space and thus can access the same data. The state of a thread is similar to that of a process: each thread has a PC and it's own registers state. Context switches between threads can take place. Each thread must have its own stack.
+
+Why threads? Multi-threaded programs take advantage of parallelism, or the task of splitting up work in a process across two or more CPUs to allow work to be done in parallel. You also might want to avoid progress due to slow I/O.
+
+To avoid race conditions in mutli-threaded programming, we want to ensure our code adheres to the property of multual exclusion, which guarantees that accesses to a shared variable will not be executed concurrently by two or more threads.
+
+Pg 12 Top
