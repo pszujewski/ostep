@@ -820,4 +820,86 @@ Why threads? Multi-threaded programs take advantage of parallelism, or the task 
 
 To avoid race conditions in mutli-threaded programming, we want to ensure our code adheres to the property of multual exclusion, which guarantees that accesses to a shared variable will not be executed concurrently by two or more threads.
 
-Pg 12 Top
+## Key terms
+
+Critical section: code that accesses a shared resource, like a variable.
+Race condition: if mutliple threads of execution enter the critical section at roughly the same time, shared data might be accessed in unexpected and inconsistent ways.
+Indeterminate program has race conditions. Thus the outcome is not deterministic, which we usually want in computer systems.
+The hardware should provide mutual exclusion primitives to guarantee that only a single thread ever enters a critical section at once, thus avoiding races, and keepingthings deterministic.
+
+Homework:
+
+1. `./x86.py -p loop.s -t 1 -i 100 -R dx`
+
+Notes: `-t` specifies the number of threads. `-i 100` specifies the interrupt frequency with the unit being "number of instructions to execute before a thread context switch." `-R` notes the registers to "track" in the output results.
+
+Regsiter `%dx` starts at `0` (this is the default), and after the run it will be -1.
+
+2. `./x86.py -p loop.s -t 2 -i 100 -a dx=3,dx=3 -R dx`
+
+Here the `dx` register is initialized to 3 for 2 threads. `%dx` should, for each thread go from 3 to -1. There is not a race in this code because the critical section is alwys run in its entirety by each thread. Therefore the outcome is deterministic.
+
+Note: `jgte` will effectively "jump" if the _second_ value provided to the previous `test` is greater than or equal to the first value provided to `test`.
+
+3. `./x86.py -p loop.s -t 2 -i 3 -r -a dx=3,dx=3 -R dx`.
+
+Even though this config increases the number of interrupts and makes it so the threads are inerrupted as they change the value held in `%dx`, there is still no race condition, since the threads are not changing a shared global variable located at a certain memory address. Instead they are changing the state of their isolated `%dx` registers, which are isolated and specific to each thread.
+
+4. `./x86.py -p looping-race-nolock.s -t 1 -M 2000`
+
+Note: this will report the state of memory address `2000`.
+
+The `value` at memory address 2000 is `0` because it is not initialized to a different value in the config.
+
+5. `./x86.py -p looping-race-nolock.s -t 2 -a bx=3 -M 2000`
+
+The two threads load a global (shared) variable in their `ax` register respectively, but there is no race condition because the interrupt config default to `50` instructions before forcing a switch here. So each thread runs to completion. Each thread loops three times, because the `bx` registers for each thread are initialized to `3`, and the state of each `bx` is isolated and not shared between threads. The value at memory address 2000 starts at `0` and after each thread runs, it ends up at `6`.
+
+6. `./x86.py -p looping-race-nolock.s -t 2 -M 2000 -i 4 -r -s 0`
+
+Where is the critical section in `looping-race-nolock.s`? The critical section is the assembly code/ block of code that accesses a shared variable (shared across threads),for example:
+
+```
+mov 2000, %ax  # get 'value' at address 2000
+add $1, %ax    # increment it
+mov %ax, 2000  # store it back
+```
+
+Here,the code loads the value at memory address `2000` into the thread's `%ax` register, thus accessing and modifying a global variable.
+
+Does the timing of the interrupt matter? Yes, the timing matters a lot. For example, here:
+
+```
+ M 2000
+
+ ------ Interrupt ------  ------ Interrupt ------
+    3   1004 mov 2000, %ax
+    3   1005 add $1, %ax
+    3   ------ Interrupt ------  ------ Interrupt ------
+    3                            1004 mov 2000, %ax
+    3                            1005 add $1, %ax
+    4                            1006 mov %ax, 2000
+    4                            1007 sub  $1, %bx
+    4                            1008 test $0, %bx
+    4                            1009 jgt .top
+    4   ------ Interrupt ------  ------ Interrupt ------
+    3   1006 mov %ax, 2000
+```
+
+Thread 0 is "interrupted" in the middle of the critical seciton. It has loaded variable `2000` into its `ax` register. When it starts running aagin, it ends up resetting the state of variable `2000` back to 3 simply because of when it's last interrupt occurred. This is a non-deterministic outcome.
+
+7. `./x86.py -p looping-race-nolock.s -a bx=1 -t 2 -M 2000 -i 1`
+
+For which interval setting is the "correct" answer provided? The correct answer is provided when one thread does not overwrite the work of another in a global shared variable. So in this case setting `-i 3` allows that, but `-i 1` or `2` does not.
+
+9. `./x86.py -p wait-for-me.s -a ax=1,ax=0 -R ax -M 2000`
+
+This creates two threads. How is the value at location `2000` being used by the threads? Memory location `2000` is a global shared variable that the threads both reference. The first thread has its `%ax` register value set to `1`, which causes it to "jump" to `.signaller`, in which the constant `1` is `mov`-ed to memory location `2000`. When the second thread starts, it reads `2000` into a register, and if its value is equal to `1`, the program "halts." How should this code behave? The code is set up such that one thread must place `1` into memory location `2000` for another thread in order for the second thread to exit the loop in the `.waiter` block.
+
+10. Switch the inputs: `./x86.py -p wait-for-me.s -a ax=0,ax=1 -R ax -M 2000`
+
+What is thread 0 doing? Thread 0 has its `ax` register set to `0`, which will push it into the `.waiter` block. Since `2000` is set to `0` still it is effectively in an infinite loop until the interrupt occurs and the second thread begins after a thread context switch. The second thread has ann initial state of `1` for its `%ax` register, which means it will update `2000` to hold `1` and then exit. Finally, when Thread 0 starts up again in its loop, the next time it loads `2000`, the logic in `.waiter` will reach the `halt`. Thus the length of time the program takes in total is entirely dependent on when an interrupt occurs.
+
+# Thread API
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/threads-api.pdf
