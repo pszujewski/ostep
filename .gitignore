@@ -53,6 +53,10 @@ Thumbs.db
 
 tests-out/
 
+*.o
+
+.vscode/*.log
+
 **/*/node_modules
 
 2022-steps.txt

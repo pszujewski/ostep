@@ -902,4 +902,46 @@ What is thread 0 doing? Thread 0 has its `ax` register set to `0`, which will pu
 
 # Thread API
 
-https://pages.cs.wisc.edu/~remzi/OSTEP/threads-api.pdf
+`pthread_create(...)`, `pthread_join(...)`
+
+Homework
+
+1. `valgrind --tool=helgrind ./main-race`. How does `helgrind` report the race condition and what other information does it give you?
+   `helgrind` is a thread error detector. The race condition is reported as follows:
+
+```
+==1373== Possible data race during write of size 4 at 0x309014 by thread #1
+==1373== Locks held: none
+==1373==    at 0x10880F: main (main-race.c:15)
+==1373==
+==1373== This conflicts with a previous write of size 4 by thread #2
+==1373== Locks held: none
+==1373==    at 0x10879B: worker (main-race.c:8)
+==1373==    by 0x4C38C26: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==1373==    by 0x4E4B6DA: start_thread (pthread_create.c:463)
+==1373==    by 0x518471E: clone (clone.S:95)
+==1373==  Address 0x309014 is 0 bytes inside data symbol "balance"
+```
+
+The main thread at line 15 reads (and then modifies) a `int` global variable (size 4 bytes). The created thread is reported as having modified this same variable.
+
+2. What happens when you remove one of the offending lines of code? `helgrind` reports no errors. What happens when you put "locks" around just one of the offending lines of code?
+
+```c
+void *worker(void *arg)
+{
+    pthread_mutex_t lock;
+    Pthread_mutex_lock(&lock);
+    balance++; // unprotected access
+    Pthread_mutex_unlock(&lock);
+    return NULL;
+}
+```
+
+`helgrind` still reports the same error. The problem is that there are no possible "locks" from thread #1, so that gurantees that this code would never be "lock"-ed out of running. You must wrap every access of a global variable with "locks". By correctly locking (and initializing locks) for all global variable accesses, `helgrind` reports 0 possible errors.
+
+3. `helgrid` reports "Observed (incorrect) order" in lock acquisition. I don't fully understand the error as reported by `helgrind`, but it seems to read as, once a lock order is observed, subsequent "lock" requests mst adhere to that same order.
+
+# Locks
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/threads-locks.pdf
