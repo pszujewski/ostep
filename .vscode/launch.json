@@ -5,11 +5,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "(gdb) Launch tlb",
+			"name": "(gdb) Launch timer counter",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/ostep-projects/vm-tlb/tlb",
-			"args": ["200", "10"],
+			"program": "${workspaceFolder}/ostep-homework/threads-locks-usage/timer",
+			"args": ["./counter"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
 			"environment": [],

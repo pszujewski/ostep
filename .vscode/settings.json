@@ -1,10 +1,11 @@
 {
-    "files.associations": {
-        "stdlib.h": "c",
-        "type_traits": "c",
-        "cmath": "c",
-        "limits": "c",
-        "*.tcc": "c",
-        "typeinfo": "c"
-    }
+	"files.associations": {
+		"stdlib.h": "c",
+		"type_traits": "c",
+		"cmath": "c",
+		"limits": "c",
+		"*.tcc": "c",
+		"typeinfo": "c",
+		"stdio.h": "c"
+	}
 }

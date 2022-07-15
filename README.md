@@ -944,4 +944,24 @@ void *worker(void *arg)
 
 # Locks
 
-https://pages.cs.wisc.edu/~remzi/OSTEP/threads-locks.pdf
+Locks "wrap" critical sections to ensure the code therein executes as a single atomic instruction. Example:
+
+```
+lock_t mutex;
+lock(&mutex);
+balance = balance + 1; // critical section, global var
+unlock(&mutex);
+```
+
+A lock variable holds the state of the lock at any instant in time. It is either available, free, or acquired. By putting locks around some section of code, the programmer guanrantees that no more than a single thread can be active within that code. This brings some scheduling control back to the programmer. POSIX calls "locks" "mutex" for "mutual exclusion."
+
+Today, system designers build hardware that explicitly supports locks. Often, these are known as the _test-and-set_ or _atomic-exchange instruction_. In x86, this instruction is called `xchg`. This works because the "test" and "set" of the lock is a single atomic operation.
+
+The Compare-and-swap instruction, or Compare-on-exchange (as it is called on x86) single instruction. Similar to test-and-set.
+
+Implementing a `lock` depends on an operating system primitive `yield()`, which a thread can ncall when it wants to give up the CPU and let another thread run. The yielding thread essentially deschedules itself.
+Some OS (i.e Solaris) provide `park()` and `unpark(threadid)` to put a calling thread to sleep, and then later wake it up.
+
+# Locked Data Structures
+
+Homework p. 16
