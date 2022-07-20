@@ -49,8 +49,6 @@ Thumbs.db
 
 !*/
 
-!makefile
-
 tests-out/
 
 *.o
@@ -60,3 +58,6 @@ tests-out/
 **/*/node_modules
 
 2022-steps.txt
+
+!makefile
+!MakeFile

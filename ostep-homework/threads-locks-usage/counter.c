@@ -11,7 +11,7 @@ typedef struct timespec TimeSpec;
 
 #define BILLION 1000000000L
 
-#define NUMCPUS 12
+#define NUMCPUS 3
 
 #define COUNT_TO 1000000
 
@@ -92,7 +92,14 @@ void *count(void *args)
 
     for (size_t i = 1; i <= COUNT_TO; i++)
     {
-        update(cargs->counter, cargs->thread_id, 1);
+        if (get(cargs->counter) >= COUNT_TO)
+        {
+            break;
+        }
+        else
+        {
+            update(cargs->counter, cargs->thread_id, 1);
+        }
     }
 
     return NULL;
@@ -133,6 +140,7 @@ void update(Counter *c, int threadID, int amt)
 }
 
 // get: just return global amount (approximate)
+// activates the "global" lock to read from the variable.
 int get(Counter *c)
 {
     pthread_mutex_lock(&c->glock);

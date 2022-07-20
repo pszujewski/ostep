@@ -1,2 +1,6 @@
 *.out
 *.txt
+
+!makefile
+!MakeFile
+!Makefile
