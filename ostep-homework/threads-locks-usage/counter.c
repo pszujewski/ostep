@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h> /* for uint64 definition */
+#include "common_threads.h"
 
 typedef struct timespec TimeSpec;
 
@@ -23,12 +24,18 @@ typedef struct __counter_t
     int local[NUMCPUS];             // per-CPU count
     pthread_mutex_t llock[NUMCPUS]; // ... and locks
     int threshold;                  // update frequency
-
 } Counter;
 
-uint64_t get_trial_time(TimeSpec *start, TimeSpec *end);
+typedef struct __counterargs_t
+{
+    Counter *counter;
+    int thread_id;
+} CounterArgs;
 
-void count(Counter *c, int threadID);
+uint64_t
+get_trial_time(TimeSpec *start, TimeSpec *end);
+
+void *count(void *args);
 
 void init(Counter *c, int threshold);
 
@@ -41,12 +48,20 @@ int main()
     TimeSpec *start = malloc(sizeof(TimeSpec));
     clock_gettime(CLOCK_REALTIME, start);
 
-    // First, with one thread, what happens when running count()?
-    // Create threads and run count()
     Counter *c = malloc(sizeof(Counter));
-    init(c, 1);
+    init(c, 5);
 
-    count(c, 0);
+    // pthread_t pid[NUMTHREADS];
+
+    // for (size_t i = 0; i < NUMCPUS; i++)
+    // {
+    //     pthread_create(pid[i], count)
+    // }
+    CounterArgs *args = malloc(sizeof(CounterArgs));
+    args->counter = c;
+    args->thread_id = 0;
+
+    count((void *)args);
     printf("Final count => %d\n", get(c));
 
     free(c);
@@ -66,12 +81,16 @@ uint64_t get_trial_time(TimeSpec *start, TimeSpec *end)
     return (end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec) / BILLION;
 }
 
-void count(Counter *c, int threadID)
+void *count(void *args)
 {
+    CounterArgs *cargs = (CounterArgs *)args;
+
     for (size_t i = 1; i <= COUNT_TO; i++)
     {
-        update(c, threadID, 1);
+        update(cargs->counter, cargs->thread_id, 1);
     }
+
+    return NULL;
 }
 
 // init: record threshold, init locks, init values
