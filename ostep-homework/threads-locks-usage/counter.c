@@ -51,19 +51,24 @@ int main()
     Counter *c = malloc(sizeof(Counter));
     init(c, 5);
 
-    // pthread_t pid[NUMTHREADS];
+    pthread_t pid[NUMTHREADS];
 
-    // for (size_t i = 0; i < NUMCPUS; i++)
-    // {
-    //     pthread_create(pid[i], count)
-    // }
-    CounterArgs *args = malloc(sizeof(CounterArgs));
-    args->counter = c;
-    args->thread_id = 0;
+    for (size_t i = 0; i < NUMCPUS; i++)
+    {
+        CounterArgs *args = malloc(sizeof(CounterArgs));
 
-    count((void *)args);
+        args->counter = c;
+        args->thread_id = i;
+
+        Pthread_create(&pid[i], NULL, count, (void *)args);
+    }
+
+    for (size_t i = 0; i < NUMCPUS; i++)
+    {
+        Pthread_join(pid[i], NULL);
+    }
+
     printf("Final count => %d\n", get(c));
-
     free(c);
 
     TimeSpec *end = malloc(sizeof(TimeSpec));
