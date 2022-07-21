@@ -964,4 +964,8 @@ Some OS (i.e Solaris) provide `park()` and `unpark(threadid)` to put a calling t
 
 # Locked Data Structures
 
-Homework p. 16
+See ostep-homework/threads-locks-usage
+
+# Condition Variables
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/threads-cv.pdf
