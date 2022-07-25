@@ -9,4 +9,4 @@ ll:
 
 # run with "make clean"
 clean:
-	rm -rf ./counter
+	rm -rf ./counter ./ll
