@@ -37,7 +37,7 @@ int main()
 
 void Test_Insert(ListNode *list, int data)
 {
-    int *addr = (int *)malloc(sizeof(int)); // int *addr is an address (pointer) to a "int" value in memory.
+    int *addr = (int *)malloc(sizeof(int)); // int *addr is an address (pointer) to a "int" value in memory. The "*" is technically part of the variable name.
     *addr = data;                           // "*" here is an operator saying "addr" is a variable of type "int pointer". Access the value at that pointer. So "addr" is a pointer var and "*addr" is an int.
 
     int idx = List_Insert(list, (void *)addr);
