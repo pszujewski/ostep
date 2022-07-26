@@ -34,3 +34,9 @@ Approximate seconds elapsed: 1
 ```
 
 I have to reduce the number of threads created (and counting) to 3 in order to not get this error.
+
+UPDATE
+
+I actually had a bug in the counter that was leading to the above error messages. After resolving the bug, I'm able to run the counter with many threads (i.e over 100), and I'm not noticing any performance hits.
+
+`./linked-list.c` is a thread safe albeit "inefficient" linked list implementation. To confirm it is thread safe, remove the locking code and the assertions will then fail since there are now race conditions between the threads updating the same global values. The program implements a single global lock for the list.

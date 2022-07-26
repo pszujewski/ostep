@@ -5,7 +5,7 @@ all:
 	$(CC) -pthread ./counter.c -o ./counter $(OPTS)
 
 ll: 
-	$(CC) ./linked-list.c -o ./ll $(OPTS)
+	$(CC) -pthread ./linked-list.c -o ./ll $(OPTS)
 
 # run with "make clean"
 clean:

@@ -11,11 +11,9 @@ typedef struct timespec TimeSpec;
 
 #define BILLION 1000000000L
 
-#define NUMCPUS 3
+#define NUMCPUS 12
 
 #define COUNT_TO 1000000
-
-#define NUMTHREADS 2
 
 typedef struct __counter_t
 {
@@ -51,7 +49,7 @@ int main()
     Counter *c = malloc(sizeof(Counter));
     init(c, 5);
 
-    pthread_t pid[NUMTHREADS];
+    pthread_t pid[NUMCPUS];
 
     for (size_t i = 0; i < NUMCPUS; i++)
     {
