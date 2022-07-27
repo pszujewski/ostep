@@ -959,7 +959,7 @@ Today, system designers build hardware that explicitly supports locks. Often, th
 
 The Compare-and-swap instruction, or Compare-on-exchange (as it is called on x86) single instruction. Similar to test-and-set.
 
-Implementing a `lock` depends on an operating system primitive `yield()`, which a thread can ncall when it wants to give up the CPU and let another thread run. The yielding thread essentially deschedules itself.
+Implementing a `lock` depends on an operating system primitive `yield()`, which a thread can call when it wants to give up the CPU and let another thread run. The yielding thread essentially deschedules itself.
 Some OS (i.e Solaris) provide `park()` and `unpark(threadid)` to put a calling thread to sleep, and then later wake it up.
 
 # Locked Data Structures
