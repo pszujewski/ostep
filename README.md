@@ -814,7 +814,7 @@ https://spectreattack.com/
 
 # Concurrency
 
-Threads have their own PCs (program counters) from which instructions are fetched. A multi-threaded program has more than one poin of execution. Each thread is like a separate process, except they all share the same address space and thus can access the same data. The state of a thread is similar to that of a process: each thread has a PC and it's own registers state. Context switches between threads can take place. Each thread must have its own stack.
+Threads have their own PCs (program counters) from which instructions are fetched. A multi-threaded program has more than one point of execution. Each thread is like a separate process, except they all share the same address space and thus can access the same data. The state of a thread is similar to that of a process: each thread has a PC and it's own registers state. Context switches between threads can take place. Each thread must have its own stack.
 
 Why threads? Multi-threaded programs take advantage of parallelism, or the task of splitting up work in a process across two or more CPUs to allow work to be done in parallel. You also might want to avoid progress due to slow I/O.
 
@@ -825,7 +825,7 @@ To avoid race conditions in mutli-threaded programming, we want to ensure our co
 Critical section: code that accesses a shared resource, like a variable.
 Race condition: if mutliple threads of execution enter the critical section at roughly the same time, shared data might be accessed in unexpected and inconsistent ways.
 Indeterminate program has race conditions. Thus the outcome is not deterministic, which we usually want in computer systems.
-The hardware should provide mutual exclusion primitives to guarantee that only a single thread ever enters a critical section at once, thus avoiding races, and keepingthings deterministic.
+The hardware should provide mutual exclusion primitives to guarantee that only a single thread ever enters a critical section at once, thus avoiding races, and keeping things deterministic.
 
 Homework:
 
@@ -968,4 +968,58 @@ See ostep-homework/threads-locks-usage
 
 # Condition Variables
 
-https://pages.cs.wisc.edu/~remzi/OSTEP/threads-cv.pdf
+A `condition variable` is a queue that threads can put themselves on when some state of execution is not as desired (by waiting on the condition).
+
+To declare a condition variable: `pthread_cond_t c;` declares `c` as a conditon variable, which has two operations `wait()` and `signal()`
+
+```c
+pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m);
+pthread_cond_signal(pthread_cond_t *c);
+```
+
+Always "hold a lock" while signaling. Locks and condition variables, in other words, go hand in hand. Always use `while` loops with condition variables.
+
+An HTTP web server is an example of the producer/consumer problem, where a "producer" puts HTTP requests into a work queue (bounded buffer) and consumer threads take requests out of this queue and process them. Because this queue (buffer) is a shared resource, we require synchronized access to it between the producer and consumer threads to avoid race conditions.
+
+# Semaphores
+
+A semaphore is an additional concurrency synchronization primitive that integrates features of both mutex locks and condition variables so that you can just use a semphore instead of needing to use both a lock and a CV.
+
+A semphore is an object with an integer value that we can manipulate with two routines; in the POSIX standard, these routines are `sem_wait()` and `sem_post()`.
+
+`sem_wait()` effectively decrements the value of the sempahore, and if a thread calls `sem_wait` and the value is negative, then the thread is "put to sleep."
+
+Basic example of a "Binary Semaphore" (aka a "lock")
+
+```c
+sem_t m;
+sem_init(&m, 0, 1); // 3rd arg will almost always be "1", 2nd arg will always be 0 if you want to control only access to critical sections between threads within the same process
+
+sem_wait(&m);
+// ... critical section goes here ...
+sem_post(&m);
+```
+
+Using a semaphore to force a parent thread to wait until a child thread has finished:
+
+```c
+sem_t s;
+
+void *child(void *arg)
+{
+   printf("child\n");
+   sem_post(&s);       // signal here: child is done
+   return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+   sem_init(&s, 0, 0); // The initial value of the semaphore is "0". sem_wait will dec this value, forcing the "wait"
+   printf("parent: begin\n");
+   pthread_t c;
+   Pthread_create(&c, NULL, child, null);
+   sem_wait(&s);
+   printf("parent: end\n");
+   return 0;
+}
+```
