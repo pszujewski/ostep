@@ -1014,7 +1014,7 @@ void *child(void *arg)
 
 int main(int argc, char *argv[])
 {
-   sem_init(&s, 0, 0); // The initial value of the semaphore is "0". sem_wait will dec this value, forcing the "wait"
+   sem_init(&s, 0, 0); // The initial value of the semaphore is "0". sem_wait will decrement this value, forcing the "wait"
    printf("parent: begin\n");
    pthread_t c;
    Pthread_create(&c, NULL, child, null);
@@ -1023,3 +1023,9 @@ int main(int argc, char *argv[])
    return 0;
 }
 ```
+
+The bounded buffer problem is common in multi-threaded programs, where different threads have to read/write to a shared "buffer." The solution is to "bound" access to the buffer in a binary semaphore aka "lock."
+
+See `ostep-code/threads-sema` for an example of a read/write lock. A lock library that allows for reading and writing to a thread-safe shared list resource.
+
+https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf
