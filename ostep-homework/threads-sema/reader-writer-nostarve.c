@@ -10,56 +10,53 @@
 typedef struct __rwlock_t
 {
     int readers;
-    int blocked_writers;
-    sem_t lock;
+    sem_t entrylock;
+    sem_t readlock;
     sem_t writelock;
 } rwlock_t;
 
 void rwlock_init(rwlock_t *rw)
 {
     rw->readers = 0;
-    rw->blocked_writers = 0;
-    Sem_init(&(rw->lock), 1);
+    Sem_init(&(rw->entrylock), 1);
+    Sem_init(&(rw->readlock), 1);
     Sem_init(&(rw->writelock), 1);
 }
 
 void rwlock_acquire_readlock(rwlock_t *rw)
 {
-    if (rw->blocked_writers > 0)
-    {
-        Sem_wait(&(rw->writelock));
-        Sem_post(&(rw->writelock));
-    }
-    Sem_wait(&(rw->lock));
+    Sem_wait(&(rw->entrylock));
+    Sem_wait(&(rw->readlock));
     rw->readers++;
+    Sem_post(&(rw->readlock));
+    Sem_post(&(rw->entrylock));
     if (rw->readers == 1)
     {
         Sem_wait(&(rw->writelock));
     }
-    Sem_post(&(rw->lock));
 }
 
 void rwlock_release_readlock(rwlock_t *rw)
 {
-    Sem_wait(&(rw->lock));
+    Sem_wait(&(rw->readlock));
     rw->readers--;
+    Sem_post(&(rw->readlock));
     if (rw->readers == 0)
     {
         Sem_post(&(rw->writelock));
     }
-    Sem_post(&(rw->lock));
 }
 
 void rwlock_acquire_writelock(rwlock_t *rw)
 {
-    rw->blocked_writers++;
+    Sem_wait(&(rw->entrylock));
     Sem_wait(&(rw->writelock));
 }
 
 void rwlock_release_writelock(rwlock_t *rw)
 {
-    rw->blocked_writers--;
     Sem_post(&(rw->writelock));
+    Sem_post(&(rw->entrylock));
 }
 
 //
