@@ -1028,4 +1028,17 @@ The bounded buffer problem is common in multi-threaded programs, where different
 
 See `ostep-code/threads-sema` for an example of a read/write lock. A lock library that allows for reading and writing to a thread-safe shared list resource.
 
-https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf
+# Event-Based Concurrency
+
+The event loop is a common api for implementing concurrency without the need for multiple threads, and therefore locks, semaphores or condition variables. nodejs implements this model. A basic event loop
+
+```c
+int main()
+{
+   events = getEvents();
+   for (e in events)
+   {
+      processEvent(e);
+   }
+}
+```
