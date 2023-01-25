@@ -1030,7 +1030,7 @@ See `ostep-code/threads-sema` for an example of a read/write lock. A lock librar
 
 # Event-Based Concurrency
 
-The event loop is a common api for implementing concurrency without the need for multiple threads, and therefore locks, semaphores or condition variables. nodejs implements this model. A basic event loop
+The event loop is a common api for implementing concurrency without the need for multiple threads, and therefore locks, semaphores or condition variables. nodejs implements this model. A basic event loop:
 
 ```c
 int main()

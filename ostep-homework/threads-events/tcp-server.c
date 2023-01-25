@@ -44,6 +44,13 @@ int main()
 
     while (1)
     {
+        /**
+         * @brief
+         * Upon acceptance, the server gets a new socket bound to the same local port
+         * and also has its remote endpoint set to the address and port of the client.
+         * It needs a new socket so that it can continue to listen to the original socket
+         * for connection requests while tending to the needs of the connected client.
+         */
         addr_size = sizeof(client_addr);
         client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &addr_size);
         printf("[+]Client connected.\n");
