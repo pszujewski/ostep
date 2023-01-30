@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// gcc ./test-list.c ./list.c -o ./test-list -Wall -Werror -g
+// gcc ./test-list.c ../list.c -o ./test-list -Wall -Werror -g
 
 char *copyString(char *s)
 {
