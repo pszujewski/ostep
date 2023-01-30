@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// gcc ./test-ht.c ../ht.c -o ./test-ht -Wall -Werror
+
 int main()
 {
     ht *people = ht_create();
