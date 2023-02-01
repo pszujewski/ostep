@@ -16,7 +16,7 @@ ht *keyAccessTable;
 typedef struct Entry
 {
 	char *word;
-	int count;
+	char *countToken;
 } Entry;
 
 // External functions: these are what you must define
@@ -50,7 +50,7 @@ void MR_Emit(char *key, char *value)
 	Entry *entry = malloc(sizeof(Entry));
 
 	entry->word = key;
-	entry->count = atoi(value);
+	entry->countToken = value;
 	void *currentEntry = ht_get(wordsTable, entry->word);
 
 	if (currentEntry == NULL)
@@ -89,7 +89,7 @@ void MR_Clean()
 	ht_destroy(keyAccessTable);
 }
 
-void *getNext(char *key, int partition_number)
+char *getNext(char *key, int partition_number)
 {
 	int currentIndex = 0;
 	void *savedIndex = ht_get(keyAccessTable, key);
@@ -124,7 +124,7 @@ void *getNext(char *key, int partition_number)
 	{
 		return NULL;
 	}
-	return item->data;
+	return ((Entry *)item->data)->countToken;
 }
 
 void MR_Run(int argc, char *argv[],
@@ -135,7 +135,7 @@ void MR_Run(int argc, char *argv[],
 	wordsTable = ht_create();
 	keyAccessTable = ht_create();
 
-	map("filename");
+	map("./lorem.txt");
 	hti wordsIt = ht_iterator(wordsTable);
 
 	while (ht_next(&wordsIt))
