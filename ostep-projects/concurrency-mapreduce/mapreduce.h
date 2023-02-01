@@ -106,8 +106,10 @@ char *getNext(char *key, int partition_number)
 	else
 	{
 		currentIndex = *((int *)savedIndex);
-		int nextIndexToSave = currentIndex + 1;
-		if (ht_set(keyAccessTable, key, (void *)&nextIndexToSave) == NULL)
+		int *nextIndexToSave = malloc(sizeof(int));
+		*(nextIndexToSave) = currentIndex + 1;
+		free(savedIndex);
+		if (ht_set(keyAccessTable, key, (void *)nextIndexToSave) == NULL)
 		{
 			exit(1);
 		}

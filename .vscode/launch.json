@@ -8,7 +8,7 @@
 			"name": "(gdb) Launch gdb",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/ostep-homework/threads-locks-usage/ll",
+			"program": "${workspaceFolder}/ostep-projects/concurrency-mapreduce/wordcount-test",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
