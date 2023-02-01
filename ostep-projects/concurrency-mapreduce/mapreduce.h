@@ -1,3 +1,6 @@
+#include "../lib/ht.h"
+#include "../lib/list.h"
+
 #ifndef __mapreduce_h__
 #define __mapreduce_h__
 
@@ -6,6 +9,15 @@ typedef char *(*Getter)(char *key, int partition_number); // Why does Getter nee
 typedef void (*Mapper)(char *file_name);
 typedef void (*Reducer)(char *key, Getter get_func, int partition_number);
 typedef unsigned long (*Partitioner)(char *key, int num_partitions);
+
+ht *wordsTable;
+ht *keyAccessTable;
+
+typedef struct Entry
+{
+	char *word;
+	int count;
+} Entry;
 
 // External functions: these are what you must define
 void MR_Emit(char *key, char *value);
@@ -35,7 +47,84 @@ void MR_Emit(char *key, char *value)
 	// Invoked as in Map():
 	// MR_Emit(token, "1");
 	//
-	return;
+	Entry *entry = malloc(sizeof(Entry));
+
+	entry->word = key;
+	entry->count = atoi(value);
+	void *currentEntry = ht_get(wordsTable, entry->word);
+
+	if (currentEntry == NULL)
+	{
+		list_node *list = list_init();
+		list_insert(list, entry);
+
+		if (ht_set(wordsTable, entry->word, list) == NULL)
+		{
+			exit(1);
+		}
+	}
+	else
+	{
+		list_node *listHead = (list_node *)currentEntry;
+		list_insert(listHead, entry);
+	}
+}
+
+void MR_Clean()
+{
+	hti wordsIt = ht_iterator(wordsTable);
+	hti accessIt = ht_iterator(keyAccessTable);
+
+	while (ht_next(&wordsIt))
+	{
+		list_free((list_node *)wordsIt.value);
+	}
+
+	while (ht_next(&accessIt))
+	{
+		free(accessIt.value);
+	}
+
+	ht_destroy(wordsTable);
+	ht_destroy(keyAccessTable);
+}
+
+void *getNext(char *key, int partition_number)
+{
+	int currentIndex = 0;
+	void *savedIndex = ht_get(keyAccessTable, key);
+
+	if (savedIndex == NULL)
+	{
+		int *index = malloc(sizeof(int));
+		*(index) = 1;
+		if (ht_set(keyAccessTable, key, (void *)index) == NULL)
+		{
+			exit(1);
+		}
+	}
+	else
+	{
+		currentIndex = *((int *)savedIndex);
+		int nextIndexToSave = currentIndex + 1;
+		if (ht_set(keyAccessTable, key, (void *)&nextIndexToSave) == NULL)
+		{
+			exit(1);
+		}
+	}
+
+	void *wordEntry = ht_get(wordsTable, key);
+	if (wordEntry == NULL)
+	{
+		exit(1);
+	}
+	list_node *listHead = (list_node *)wordEntry;
+	list_node *item = list_get(listHead, currentIndex);
+	if (item == NULL)
+	{
+		return NULL;
+	}
+	return item->data;
 }
 
 void MR_Run(int argc, char *argv[],
@@ -43,7 +132,18 @@ void MR_Run(int argc, char *argv[],
 			Reducer reduce, int num_reducers,
 			Partitioner partition)
 {
-	return;
+	wordsTable = ht_create();
+	keyAccessTable = ht_create();
+
+	map("filename");
+	hti wordsIt = ht_iterator(wordsTable);
+
+	while (ht_next(&wordsIt))
+	{
+		reduce((char *)wordsIt.key, getNext, 1);
+	}
+
+	MR_Clean();
 }
 
 #endif // __mapreduce_h__
