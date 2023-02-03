@@ -47,7 +47,7 @@ void MR_Emit(char *key, char *value)
 	// Invoked as in Map():
 	// MR_Emit(token, "1");
 	//
-	Entry *entry = malloc(sizeof(Entry));
+	Entry *entry = (Entry *)malloc(sizeof(Entry));
 
 	entry->word = key;
 	entry->countToken = value;
@@ -96,7 +96,7 @@ char *getNext(char *key, int partition_number)
 
 	if (savedIndex == NULL)
 	{
-		int *index = malloc(sizeof(int));
+		int *index = (int *)malloc(sizeof(int));
 		*(index) = 1;
 		if (ht_set(keyAccessTable, key, (void *)index) == NULL)
 		{
@@ -106,7 +106,7 @@ char *getNext(char *key, int partition_number)
 	else
 	{
 		currentIndex = *((int *)savedIndex);
-		int *nextIndexToSave = malloc(sizeof(int));
+		int *nextIndexToSave = (int *)malloc(sizeof(int));
 		*(nextIndexToSave) = currentIndex + 1;
 		free(savedIndex);
 		if (ht_set(keyAccessTable, key, (void *)nextIndexToSave) == NULL)
@@ -137,7 +137,7 @@ void MR_Run(int argc, char *argv[],
 	wordsTable = ht_create();
 	keyAccessTable = ht_create();
 
-	map("./lorem.txt");
+	map("./inputs/lorem0.txt");
 	hti wordsIt = ht_iterator(wordsTable);
 
 	while (ht_next(&wordsIt))
