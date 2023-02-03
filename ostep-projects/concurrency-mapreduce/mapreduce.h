@@ -1,5 +1,6 @@
 #include "../lib/ht.h"
 #include "../lib/list.h"
+#include <string.h>
 
 #ifndef __mapreduce_h__
 #define __mapreduce_h__
@@ -129,6 +130,25 @@ char *getNext(char *key, int partition_number)
 	return ((Entry *)item->data)->countToken;
 }
 
+void tostring(char str[], int num)
+{
+	int i, rem, len = 0, n;
+
+	n = num;
+	while (n != 0)
+	{
+		len++;
+		n /= 10;
+	}
+	for (i = 0; i < len; i++)
+	{
+		rem = num % 10;
+		num = num / 10;
+		str[len - (i + 1)] = rem + '0';
+	}
+	str[len] = '\0';
+}
+
 void MR_Run(int argc, char *argv[],
 			Mapper map, int num_mappers,
 			Reducer reduce, int num_reducers,
@@ -137,7 +157,11 @@ void MR_Run(int argc, char *argv[],
 	wordsTable = ht_create();
 	keyAccessTable = ht_create();
 
-	map("./inputs/lorem0.txt");
+	for (size_t i = 1; i < argc; i++)
+	{
+		map(argv[i]);
+	}
+
 	hti wordsIt = ht_iterator(wordsTable);
 
 	while (ht_next(&wordsIt))

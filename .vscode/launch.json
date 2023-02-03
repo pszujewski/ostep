@@ -9,7 +9,11 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/ostep-projects/concurrency-mapreduce/wordcount-test",
-			"args": [],
+			"args": [
+				"./inputs/lorem1.txt",
+				"./inputs/lorem2.txt",
+				"./inputs/lorem3.txt"
+			],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
 			"environment": [],
