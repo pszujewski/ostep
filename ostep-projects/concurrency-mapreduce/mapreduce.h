@@ -2,12 +2,14 @@
 #include "../lib/list.h"
 #include <string.h>
 
+#include "common_threads.h"
+
 #ifndef __mapreduce_h__
 #define __mapreduce_h__
 
 // Different function pointer types used by MR
 typedef char *(*Getter)(char *key, int partition_number); // Why does Getter need the partition number?
-typedef void (*Mapper)(char *file_name);
+typedef void *(*Mapper)(void *file_name);
 typedef void (*Reducer)(char *key, Getter get_func, int partition_number);
 typedef unsigned long (*Partitioner)(char *key, int num_partitions);
 
@@ -19,6 +21,28 @@ typedef struct Entry
 	char *word;
 	char *countToken;
 } Entry;
+
+typedef struct __wlock_t
+{
+	sem_t writelock;
+} wlock_t;
+
+wlock_t wlock;
+
+void wlock_init(wlock_t *w)
+{
+	Sem_init(&(w->writelock), 1);
+}
+
+void wlock_aquire_write(wlock_t *w)
+{
+	Sem_wait(&(w->writelock));
+}
+
+void wlock_release_write(wlock_t *w)
+{
+	Sem_post(&(w->writelock));
+}
 
 // External functions: these are what you must define
 void MR_Emit(char *key, char *value);
@@ -47,11 +71,13 @@ void MR_Emit(char *key, char *value)
 	// { [key: string]: string[] values };  -> the last item in the values list is null '\0'
 	// Invoked as in Map():
 	// MR_Emit(token, "1");
-	//
 	Entry *entry = (Entry *)malloc(sizeof(Entry));
 
 	entry->word = key;
 	entry->countToken = value;
+
+	wlock_aquire_write(&wlock);
+
 	void *currentEntry = ht_get(wordsTable, entry->word);
 
 	if (currentEntry == NULL)
@@ -69,6 +95,8 @@ void MR_Emit(char *key, char *value)
 		list_node *listHead = (list_node *)currentEntry;
 		list_insert(listHead, entry);
 	}
+
+	wlock_release_write(&wlock);
 }
 
 void MR_Clean()
@@ -130,36 +158,27 @@ char *getNext(char *key, int partition_number)
 	return ((Entry *)item->data)->countToken;
 }
 
-void tostring(char str[], int num)
-{
-	int i, rem, len = 0, n;
-
-	n = num;
-	while (n != 0)
-	{
-		len++;
-		n /= 10;
-	}
-	for (i = 0; i < len; i++)
-	{
-		rem = num % 10;
-		num = num / 10;
-		str[len - (i + 1)] = rem + '0';
-	}
-	str[len] = '\0';
-}
-
 void MR_Run(int argc, char *argv[],
 			Mapper map, int num_mappers,
 			Reducer reduce, int num_reducers,
 			Partitioner partition)
 {
+	wlock_init(&wlock);
+
 	wordsTable = ht_create();
 	keyAccessTable = ht_create();
 
+	int mappers_count = argc - 1;
+	pthread_t mapper_threads[mappers_count];
+
 	for (size_t i = 1; i < argc; i++)
 	{
-		map(argv[i]);
+		Pthread_create(&mapper_threads[i - 1], NULL, map, argv[i]);
+	}
+
+	for (size_t i = 0; i < mappers_count; i++)
+	{
+		Pthread_join(mapper_threads[i], NULL); // will "wait" for all mapper threads to finish.
 	}
 
 	hti wordsIt = ht_iterator(wordsTable);

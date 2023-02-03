@@ -4,9 +4,9 @@
 #include <string.h>
 #include "mapreduce.h"
 
-void Map(char *file_name)
+void *Map(void *file_name)
 {
-    FILE *fp = fopen(file_name, "r");
+    FILE *fp = fopen((char *)file_name, "r");
     assert(fp != NULL);
 
     char *line = NULL;
@@ -21,6 +21,7 @@ void Map(char *file_name)
     }
     free(line);
     fclose(fp);
+    return NULL;
 }
 
 void Reduce(char *key, Getter get_next, int partition_number)
