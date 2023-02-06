@@ -155,7 +155,9 @@ char *getNext(char *key, int partition_number)
 	{
 		return NULL;
 	}
-	return ((Entry *)item->data)->countToken;
+	char *token = (char *)malloc(sizeof(char));
+	strcpy(token, ((Entry *)item->data)->countToken);
+	return token;
 }
 
 void MR_Run(int argc, char *argv[],
@@ -185,6 +187,7 @@ void MR_Run(int argc, char *argv[],
 
 	while (ht_next(&wordsIt))
 	{
+		// Where do I create threads and include locking for the reudcer_threads?
 		reduce((char *)wordsIt.key, getNext, 1);
 	}
 
