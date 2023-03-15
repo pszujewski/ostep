@@ -7,11 +7,13 @@ thread; it will be your job to make the web server multi-threaded so that it
 can handle multiple requests at the same time.
 
 The goals of this project are:
+
 - To learn the basic architecture of a simple web server
 - To learn how to add concurrency to a non-concurrent system
 - To learn how to read and modify an existing code base effectively
 
 Useful reading from [OSTEP](http://ostep.org) includes:
+
 - [Intro to threads](http://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf)
 - [Using locks](http://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf)
 - [Producer-consumer relationships](http://pages.cs.wisc.edu/~remzi/OSTEP/threads-cv.pdf)
@@ -45,15 +47,15 @@ at once, among other features. To learn more about networks, take a networking
 class (or many!), or read [this free book](https://book.systemsapproach.org).
 
 Each piece of content on the web server is associated with a file in the
-server's file system. The simplest is *static* content, in which a client
+server's file system. The simplest is _static_ content, in which a client
 sends a request just to read a specific file from the server. Slightly more
-complex is *dynamic* content, in which a client requests that an executable
+complex is _dynamic_ content, in which a client requests that an executable
 file be run on the web server and its output returned to the client.
 Each file has a unique name known as a **URL** (**Universal Resource
-Locator**). 
+Locator**).
 
 As a simple example, let's say the client browser wants to fetch static
-content (i.e., just some file) from a web server running on some machine.  The
+content (i.e., just some file) from a web server running on some machine. The
 client might then type in the following URL to the browser:
 `http://www.cs.wisc.edu/index.html`. This URL identifies that the HTTP
 protocol is to be used, and that an HTML file in the root directory (`/`) of
@@ -90,8 +92,8 @@ variable, which the program can then parse to access these arguments.
 
 When a client (e.g., a browser) wants to fetch a file from a machine, the
 process starts by sending a machine a message. But what exactly is in the body
-of that message? These *request contents*, and the subsequent *reply
-contents*, are specified precisely by the HTTP protocol.
+of that message? These _request contents_, and the subsequent _reply
+contents_, are specified precisely by the HTTP protocol.
 
 Let's start with the request contents, sent from the web browser to the
 server. This HTTP request consists of a request line, followed by zero or more
@@ -122,13 +124,13 @@ more, isn't it?
 
 # A Basic Web Server
 
-The code for the web server is available in this repository.  You can compile
+The code for the web server is available in this repository. You can compile
 the files herein by simply typing `make`. Compile and run this basic web
 server before making any changes to it! `make clean` removes .o files and
 executables and lets you do a clean build.
 
 When you run this basic web server, you need to specify the port number that
-it will listen on; ports below number 1024 are *reserved* (see the list
+it will listen on; ports below number 1024 are _reserved_ (see the list
 [here](https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml))
 so you should specify port numbers that are greater than 1023 to avoid this
 reserved range; the max is 65535. Be wary: if running on a shared machine, you
@@ -154,9 +156,9 @@ server, it may trip an assertion in the server causing it to exit. We do not
 expect you to fix these problems (though you can, if you like, you know, for
 fun).
 
-Helper functions are provided to simplify error checking.  A wrapper calls the
+Helper functions are provided to simplify error checking. A wrapper calls the
 desired function and immediately terminate if an error occurs. The wrappers
-are found in the file `io-helper.h`); more about this below.  One should
+are found in the file `io-helper.h`); more about this below. One should
 always check error codes, even if all you do in response is exit; dropping
 errors silently is **BAD C PROGRAMMING** and should be avoided at all costs.
 
@@ -170,7 +172,7 @@ that it can handle new input parameters (e.g., the number of threads to
 create).
 
 ## Part 1: Multi-threaded
- 
+
 The basic web server that we provided has a single thread of
 control. Single-threaded web servers suffer from a fundamental performance
 problem in that only a single HTTP request can be serviced at a time. Thus,
@@ -190,7 +192,7 @@ the one-thread-per-request approach is that the web server pays the overhead
 of creating a new thread on every request.
 
 Therefore, the generally preferred approach for a multi-threaded server is to
-create a fixed-size *pool* of worker threads when the web server is first
+create a fixed-size _pool_ of worker threads when the web server is first
 started. With the pool-of-threads approach, each thread is blocked until there
 is an http request for it to handle. Therefore, if there are more worker
 threads than active requests, then some of the threads will be blocked,
@@ -247,22 +249,22 @@ The scheduling policy is determined by a command line argument when the web
 server is started and are as follows:
 
 - **First-in-First-out (FIFO)**: When a worker thread wakes, it handles the
-first request (i.e., the oldest request) in the buffer. Note that the HTTP
-requests will not necessarily finish in FIFO order; the order in which the
-requests complete will depend upon how the OS schedules the active threads.
+  first request (i.e., the oldest request) in the buffer. Note that the HTTP
+  requests will not necessarily finish in FIFO order; the order in which the
+  requests complete will depend upon how the OS schedules the active threads.
 
 - ** Smallest File First (SFF)**: When a worker thread wakes, it handles the
-request for the smallest file. This policy approximates Shortest Job First to
-the extent that the size of the file is a good prediction of how long it takes
-to service that request. Requests for static and dynamic content may be
-intermixed, depending upon the sizes of those files. Note that this algorithm
-can lead to the starvation of requests for large files.  You will also note
-that the SFF policy requires that something be known about each request (e.g.,
-the size of the file) before the requests can be scheduled. Thus, to support
-this scheduling policy, you will need to do some initial processing of the
-request (hint: using `stat()` on the filename) outside of the worker threads;
-you will probably want the master thread to perform this work, which requires
-that it read from the network descriptor.
+  request for the smallest file. This policy approximates Shortest Job First to
+  the extent that the size of the file is a good prediction of how long it takes
+  to service that request. Requests for static and dynamic content may be
+  intermixed, depending upon the sizes of those files. Note that this algorithm
+  can lead to the starvation of requests for large files. You will also note
+  that the SFF policy requires that something be known about each request (e.g.,
+  the size of the file) before the requests can be scheduled. Thus, to support
+  this scheduling policy, you will need to do some initial processing of the
+  request (hint: using `stat()` on the filename) outside of the worker threads;
+  you will probably want the master thread to perform this work, which requires
+  that it read from the network descriptor.
 
 ## Security
 
@@ -275,7 +277,7 @@ backdoor into files in your system.
 Your system should also make sure to constrain file requests to stay within
 the sub-tree of the file system hierarchy, rooted at the base working
 directory that the server starts in. You must take steps to ensure that
-pathnames that are passed in do not refer to files outside of this sub-tree. 
+pathnames that are passed in do not refer to files outside of this sub-tree.
 One simple (perhaps overly conservative) way to do this is to reject any
 pathname with `..` in it, thus avoiding any traversals up the file system
 tree. More sophisticated solutions could use `chroot()` or Linux containers,
@@ -307,6 +309,7 @@ follows.
   or SFF. Default: FIFO.
 
 For example, you could run your program as:
+
 ```
 prompt> server -d . -p 8003 -t 8 -b 16 -s SFF
 ```
@@ -317,27 +320,27 @@ in progress (or waiting), and use SFF scheduling for arriving requests.
 
 # Source Code Overview
 
-We recommend understanding how the code that we gave you works.  We provide
+We recommend understanding how the code that we gave you works. We provide
 the following files:
 
 - [`wserver.c`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/wserver.c): Contains `main()` for the web server and the basic serving loop.
 - [`request.c`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/request.c): Performs most of the work for handling requests in the basic
   web server. Start at `request_handle()` and work through the logic from
-  there. 
+  there.
 - [`io_helper.h`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/io_helper.h) and [`io_helper.c`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/io_helper.c): Contains wrapper functions for the system calls invoked by
   the basic web server and client. The convention is to add `_or_die` to an
   existing call to provide a version that either succeeds or exits. For
   example, the `open()` system call is used to open a file, but can fail for a
   number of reasons. The wrapper, `open_or_die()`, either successfully opens a
-  file or exists upon failure. 
+  file or exists upon failure.
 - [`wclient.c`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/wclient.c): Contains main() and the support routines for the very simple
   web client. To test your server, you may want to change this code so that it
   can send simultaneous requests to your server. By launching `wclient`
   multiple times, you can test how your server handles concurrent requests.
 - [`spin.c`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/spin.c): A simple CGI program. Basically, it spins for a fixed amount
-  of time, which you may useful in testing various aspects of your server.  
+  of time, which you may useful in testing various aspects of your server.
 - [`Makefile`](https://github.com/remzi-arpacidusseau/ostep-projects/blob/master/concurrency-webserver/src/Makefile): We also provide you with a sample Makefile that creates
-  `wserver`, `wclient`, and `spin.cgi`. You can type make to create all of 
+  `wserver`, `wclient`, and `spin.cgi`. You can type make to create all of
   these programs. You can type make clean to remove the object files and the
   executables. You can type make server to create just the server program,
   etc. As you create new files, you will need to add them to the Makefile.
@@ -355,5 +358,4 @@ We anticipate that you will find the following routines useful for creating
 and synchronizing threads: `pthread_create()`, `pthread_mutex_init()`,
 `pthread_mutex_lock()`, `pthread_mutex_unlock()`, `pthread_cond_init()`,
 `pthread_cond_wait()`, `pthread_cond_signal()`. To find information on these
-library routines, read the man pages (RTFM). 
-
+library routines, read the man pages (RTFM).
