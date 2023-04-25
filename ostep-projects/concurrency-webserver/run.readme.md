@@ -1,4 +1,4 @@
-`./wserver -d . -p 8080`
+`./wserver -d . -p 8080 -t 5`
 
 `http://localhost:8080/spin.cgi?5`
 

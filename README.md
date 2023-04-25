@@ -1042,3 +1042,43 @@ int main()
    }
 }
 ```
+
+# Section 3 - Persistence
+
+# I/O Devices
+
+[File Devices Reading](https://pages.cs.wisc.edu/~remzi/OSTEP/file-devices.pdf)
+
+An _I/O Bus_ shuttles input and output between the CPU and other system components, for example Main Memory, a graphics cards, or peripheral I/O devices such as a USB port for a mouse or keyboard. The further "away" physically the I/O device is from the CPU, the longer it take for the data to reach its destination due to physical distance.
+
+## Devices
+
+A hardware "device" has 2 important components: 1. the **hardware interface** it presents to the rest of the system. Just like a piece of software, hardware must also present some kind of interface that allows the system software to control its operation. Thus, all devices have some secified interface and protocol for typical interaction. And 2. the **internal structure** which is implementation specific and is responsible for implementing the abstraction the device presents to the rest of the system.
+
+For example, the interface of a generic "device" might include 3 registers that the OS that can manipulate to "command" the device:
+
+`Registers: [Status] [Command] [Data]`
+
+The `[Data]` register might be used to send "data" along with a "command" or to read data out of the register following a command's execution.
+
+It's important to understand that a "device" is itself perhaps composed of many different "chips" that might do different things. For example, in order to fulfill it's purpose, a device might need to include a small proprietary memory unit and a small ALU (Arithmetic Logic Unit) or CPU to execute operations. Or it might be simpler or more complex than that. A device might include it's own embedded **firmware** (software).
+
+Interrupts allow for **overlap** of computation and I/O. For example, when the OS issues a request to a device, it might context switch to another process while the device asynchronously does its work. When complete, the device can raise a **hardware interrupt** which might cause the CPU to jump into the OS at the predetermined **interrupt handler** which finishes the request. The process waiting for the I/O can then be awakened.
+
+How does the OS communicate with a device? 1) Explicit **I/O Instructions**: On x86 the `in` and `out` instrctions are used. For example, to send data to a device, the caller specifies a register with the data in it, and a specific port which names the device.
+
+The second method to interact with devices is known as **memory mapped I/O**. With this approach, the hardware makes device registers available as if they were memory locations. To access a particular register, the OS issues a load (to read) or store (to write) the address; the hardware then routes the load/store to the device instead of main memory.
+
+### Direct Memory Access (DMA)
+
+A DMA engine is a very specific device within a system that can orchestrate transfers between devices and main memory without much CPU intervention. This avoids needing to use the CPU for programmed I/O (moving data from one device to another).
+
+### Device Driver
+
+At the lowest level, a piece of software in the OS must know in detail how a device works. We call this piece of software a device driver, and any specifics of device interaction are encapsulated within.
+
+# Hard-Disk Drives
+
+The disk is made up of a large number of sectors, where each is traditionally 512 bytes long. The disk can be thought of as an array of sectors that can be read from or written to. The file system software of the OS is built on top of this interface.
+
+Pg 6 Very Bottom 37.4

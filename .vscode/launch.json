@@ -5,15 +5,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "(gdb) Launch gdb",
+			"name": "(gdb) Launch gdb wserver",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/ostep-projects/concurrency-mapreduce/wordcount-test",
-			"args": [
-				"./inputs/lorem1.txt",
-				"./inputs/lorem2.txt",
-				"./inputs/lorem3.txt"
-			],
+			"program": "${workspaceFolder}/ostep-projects/concurrency-webserver/src/wserver",
+			"args": ["-d .", "-p 8080", "-t 5"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
 			"environment": [],
