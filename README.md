@@ -1081,4 +1081,82 @@ At the lowest level, a piece of software in the OS must know in detail how a dev
 
 The disk is made up of a large number of sectors, where each is traditionally 512 bytes long. The disk can be thought of as an array of sectors that can be read from or written to. The file system software of the OS is built on top of this interface.
 
-Pg 6 Very Bottom 37.4
+Hard disk I/O time is the sum of: `T I/O = T Seek + T Rotation + T Transfer`
+
+# RAID systems of Disks
+
+Stands for Redundant Array of Inexpensive Disks.
+
+To the OS and the rest of the system, the RAID looks like a big and fast, reliable disk. Its interface matches a disk's interface. In reality, the implementation is very complex group of disks.
+
+A RAID is very much like a specialized computer system: it has a processor, memory, and disks; however instead of running applications, it runs specialized software (firmware) deisgned to operate the RAID.
+
+Many hardware components in computer systems are connected via [SCSI cables].(https://en.wikipedia.org/wiki/SCSI_connector)
+
+# Files and Directories
+
+Thus far we have seen arise a 2 key abstractions in OS development: the process is a virtualization of the CPU and the address space is a virtualization of memory. In tandem, these allow a program to run as though it has its own private RAM and CPU just for it. The final abstraction for the OS to implement is for persistent storage. This abstraction will be the file system.
+
+Two key abstractions in the virtualization of storage: file and directory. The file is a linear array of bytes. The low-level name of a file is known as the inode number. The directory contains files. A directory always has two special entries: the `.` entry refers to itself, and the `..` entry refers to its parent.
+
+Create a file:
+
+```c
+int fd = open("foo", O_CREAT | O_WRONLY | O_TRUNC, /* permissions */);
+```
+
+`open` returns a **file descriptor**, which is a capability (an opaque handler giving you the power to perform certain operations). It's an integer used to access files in UNIX. You use it to read or write to a file. It can be thought of as a pointer to an object of type file. File descriptors are managed per process.
+
+In `xv6`, each process is encapsulated as a struct `proc`, so each `proc` has an array of open file pointers. This simple array tracks which files are opened on a per process basis:
+
+```c
+// Where "proc" encapsulates the state of a "process"
+
+struct proc {
+   struct file *openfiles[NUMFILE]; // Open files -> each entry is a file * pointer
+}
+```
+
+Aside see `strace` linux tool. It allows you to trace which system calls a program makes.
+
+Each running process already has 3 files open by default by the OS: stdin (read only permission), stdout (write permissions), stderr
+
+Each process maintains an array of file descriptors, each of which refers to an entry in the system-wide open file table. Each entry in this table, tracks which underlying file the descriptor referes to, permissions, and more.
+
+For each file a process opens, the OS tracks the "current" offset, which determins where the next read or write will begin from within the file. Thus part of the abstraction of an open file is that it has a "current offset": When a read or write or N bytes takes place, N is added to the current offset. Otherwise, you can use `lseek` utility to explicitly change the offset. The `lseek` call simply changes a variable in OS memory that tracks for a process at which offset the next read/write will start for a file. It has nothing to do with a "disk seek".
+
+Process open file table entries are shared between parent and children threads. When a file table entry is shared the entry's **reference count** is incremented.
+
+When you use the `write` system call, the OS will buffer the data in memory until an appropriate time to complete the I/O. If you use `fsync` instead, the OS will write all "dirty" (not yet written to disk) immediately to disk for the file referred to by the file descriptor.
+
+`mmap` is an alternative way to access persistent data in files. It maps a file into a process' virtual memory and then the program can read/write to the file using load/store in-memoty instructions. And these read/writes to memory actually read/write to the **backing file**.
+
+### Symbolic links
+
+These are supported by the OS as well (in addition to "hard" links). They allow you to for example link to files in other disk partitions. It looks much the same as a "hard" link but they are quite different. A symbolic, or **soft link**, is actually a file itself. It is formed by holding the pathname of the linked-to-file as the data of the link file. The size of the symbolic link file therefore depends on the size of the pathname to the file.
+
+One potential pitfall of these is they leave the possibility of a dangling reference. If the original file is deleted, the symbolic link file is not. Thus the symbolic link file no longer refers to anything. This is unlike hard links.
+
+### Permission Bits
+
+Allow files to be shared among users and processes. An example to see permission bits for a file: `ls -l ./my-file.txt`. Visualizing these might look like: `-rw-r--r--`. The first character `-` indicates the type of file: `-` for a regular file, `d` for directory, and `l` for a symbolic link. The permission bits follow and indicate what the "owner" of the file can do, what "groups" can do, and finally what "others" can do. These abilities include "read", "write", "execute". Using the uix tool `chmod` you can change file permissions.
+
+To see what file systems are mounted on your machine, execute `mount` and you'll see the "backing" for the file system, where the file system is mounted to. For example, you might see a `proc` file system which is a file system for accessing info about current processes.
+
+# Flash-based SSDs
+
+These have no mechanical or moving parts like hard drives; rather they are built out of transistors (semiconductor device and basic building block of modern electronics) like processors and memory. It retains informations despite power loss. SSD flash chips are silicon, so they are more reliable.
+
+SSDs are random access devices, meaning that the duration of a "read" is not dependent on the physical location of the data in the SSD or the previous "read" request. Important to note, that to write to a physical "page" on an SSD, you are required to first "erase" all the pages within the same physical block.
+
+Components of SSDs include some number of flash chips for persistent storage and some amount of non-persistent memory for caching and orchestration (mapping tables for mapping logical block addresses to physical block addresses, i.e). It also has firmware and control logic for device operation.
+
+The SSD virtualizes its storage addresses. When a logical block is overwritten, the the SSD maps this new data to a new physical block. Otherwise stated, overwrites create arbage blocks. Therefore a **garbage collection** system is required to clean up now invalid data that is still stored on the SSD, but which the SSD's internal mapping logic (logical blocks -> physical blocks) now longer points to. How often does the SSD execute garbage collection then is a crucial question.
+
+# Other OSTEP chapters to read
+
+Distributed Systems
+Network File System (NFS)
+Into Security
+Cryptography
+Virtual Machines
